@@ -1,0 +1,38 @@
+# Core AI Engine
+google-generativeai>=0.3.0
+
+# Cloud Storage (choose one based on your preference)
+# google-cloud-storage>=2.10.0  # For Google Cloud Storage
+# boto3>=1.28.0  # For AWS S3
+
+# Video Processing
+ffmpeg-python>=0.2.0
+opencv-python>=4.8.0
+
+# Video Downloading (Instagram, TikTok, YouTube, etc.)
+yt-dlp>=2024.1.0
+
+# Audio Processing
+openai-whisper>=20231117
+# Alternative: google-cloud-speech>=2.19.0
+
+# HTTP Client
+httpx>=0.25.0
+requests>=2.31.0
+
+# Supermemeory.ai Integration
+supermemory>=3.4.0
+
+# Data Validation
+pydantic>=2.0.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Async Processing
+asyncio>=3.4.3
+
+# Additional utilities
+python-multipart>=0.0.6  # For file uploads if building API
+aiofiles>=23.2.0  # For async file operations
+
