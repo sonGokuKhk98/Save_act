@@ -377,7 +377,10 @@ class GeminiAnalyzer:
             unsupported_fields = {
                 "title", "description", "example", "examples", 
                 "default", "defaultValue", "format", 
-                "additionalProperties", "$schema", "$id"
+                "additionalProperties", "$schema", "$id",
+                "const",  # Used for Literal types in Pydantic
+                "allOf", "anyOf", "oneOf",  # Schema composition
+                "definitions"  # Old-style definitions
             }
             
             for key, value in schema.items():
