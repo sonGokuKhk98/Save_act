@@ -497,30 +497,11 @@ class GeminiAnalyzer:
             if transcript:
                 content_parts.append(f"\nAudio Transcript:\n{transcript}")
             
-            # Generate response with JSON format and schema enforcement
-            # Convert Pydantic model to JSON Schema for structured output
-            json_schema = model_class.model_json_schema()
-            
-            # Remove $defs key as Gemini API doesn't support it
-            # This is a Pydantic v2 feature for nested schemas that needs to be cleaned
-            if "$defs" in json_schema:
-                defs = json_schema.pop("$defs")
-                # Inline the definitions by resolving $ref references
-                json_schema = self._resolve_schema_refs(json_schema, defs)
-            
-            # Clean schema to remove unsupported fields (example, examples, etc.)
-            json_schema = self._clean_schema_for_gemini(json_schema)
-            
-            # Add category enum constraint so Gemini knows valid values
-            # Even though we override it later, this helps guide Gemini's output
-            if "properties" in json_schema and "category" in json_schema["properties"]:
-                json_schema["properties"]["category"]["enum"] = [
-                    "workout", "recipe", "travel", "product", "educational", "music"
-                ]
-            
+            # Use flexible JSON generation - let Gemini return whatever it wants
+            # We'll map the fields ourselves instead of enforcing strict schema
             generation_config = genai.types.GenerationConfig(
-                response_mime_type="application/json",
-                response_schema=json_schema  # Enforce structure at generation time
+                response_mime_type="application/json"
+                # NOTE: No response_schema - allows Gemini to be flexible
             )
             
             response = self.model.generate_content(
@@ -537,21 +518,34 @@ class GeminiAnalyzer:
             elif response_text.startswith("```"):
                 response_text = response_text.split("```")[1].split("```")[0].strip()
             
-            json_data = json.loads(response_text)
+            gemini_data = json.loads(response_text)
             
-            # Clean up any fields that contain excessive text (Gemini thinking out loud)
-            # This is a safeguard against Gemini including reasoning in structured fields
-            if "exercises" in json_data and isinstance(json_data["exercises"], list):
-                for exercise in json_data["exercises"]:
-                    if "name" in exercise and isinstance(exercise["name"], str):
-                        # If the name is abnormally long (>100 chars), try to extract just the exercise name
-                        if len(exercise["name"]) > 100:
-                            # Take only the first line or first 50 characters
-                            first_line = exercise["name"].split("\n")[0].strip()
-                            exercise["name"] = first_line[:50] if len(first_line) > 50 else first_line
+            # Flexible mapping approach:
+            # 1. Extract known fields that match our model
+            # 2. Put everything else into additional_context
             
-            # Set the category field based on the model class
-            # Gemini might return incorrect category values, so we override it
+            # Get the expected fields from the model
+            model_fields = model_class.model_fields.keys()
+            
+            # Separate matched fields from extra fields
+            mapped_data = {}
+            extra_context = {}
+            
+            for key, value in gemini_data.items():
+                if key in model_fields:
+                    # Clean up fields that might have excessive text
+                    if key == "exercises" and isinstance(value, list):
+                        for exercise in value:
+                            if "name" in exercise and isinstance(exercise["name"], str):
+                                if len(exercise["name"]) > 100:
+                                    first_line = exercise["name"].split("\n")[0].strip()
+                                    exercise["name"] = first_line[:50] if len(first_line) > 50 else first_line
+                    mapped_data[key] = value
+                else:
+                    # This field doesn't match our model, save it as extra context
+                    extra_context[key] = value
+            
+            # Set required fields with defaults if missing
             category_map = {
                 WorkoutRoutine: "workout",
                 RecipeCard: "recipe",
@@ -560,26 +554,37 @@ class GeminiAnalyzer:
                 TutorialSummary: "educational",
                 SongMetadata: "music"
             }
+            
+            # Always set the correct category
             if model_class in category_map:
-                json_data["category"] = category_map[model_class]
+                mapped_data["category"] = category_map[model_class]
             
-            # Clean up None values for required fields - provide defaults
-            # This handles cases where Gemini doesn't return all required fields
+            # Merge or create additional_context
+            if extra_context:
+                if "additional_context" in mapped_data:
+                    # Merge with existing additional_context
+                    if isinstance(mapped_data["additional_context"], dict):
+                        mapped_data["additional_context"].update(extra_context)
+                    else:
+                        mapped_data["additional_context"] = extra_context
+                else:
+                    mapped_data["additional_context"] = extra_context
+            
+            # Set model-specific defaults
             if model_class == WorkoutRoutine:
-                if "estimated_duration_minutes" not in json_data or json_data["estimated_duration_minutes"] is None:
-                    # Try to estimate from exercises or set a default
-                    json_data["estimated_duration_minutes"] = 20.0  # Default 20 minutes
-                if "difficulty_level" not in json_data or json_data["difficulty_level"] is None:
-                    json_data["difficulty_level"] = "intermediate"  # Default difficulty
+                if "estimated_duration_minutes" not in mapped_data or mapped_data["estimated_duration_minutes"] is None:
+                    mapped_data["estimated_duration_minutes"] = 20.0
+                if "difficulty_level" not in mapped_data or mapped_data["difficulty_level"] is None:
+                    mapped_data["difficulty_level"] = "intermediate"
             
-            # Validate and create model instance
+            # Try to create the model instance
             try:
-                instance = model_class(**json_data)
+                instance = model_class(**mapped_data)
                 return instance, None
             except Exception as validation_error:
-                # If validation fails, try to fix common issues
+                # If validation fails, return error with data
                 error_msg = str(validation_error)
-                return None, f"Validation error: {error_msg}. JSON data: {json.dumps(json_data, indent=2)}"
+                return None, f"Validation error: {error_msg}. Mapped data: {json.dumps(mapped_data, indent=2)}"
             
         except json.JSONDecodeError as e:
             return None, f"Invalid JSON response: {str(e)}"
