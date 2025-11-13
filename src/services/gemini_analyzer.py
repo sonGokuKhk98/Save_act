@@ -149,16 +149,14 @@ class GeminiAnalyzer:
         - Difficulty level (beginner/intermediate/advanced)
         - Music tempo in BPM (if detectable)
         
-        IMPORTANT: Put any additional context, metadata, or extra information that doesn't fit the 
-        structured fields into the "additional_context" field as a flexible JSON object. This can include:
-        - Trainer name, location, equipment used
-        - Video quality, hashtags, captions
-        - Tips, modifications, safety notes
-        - Any other contextual information
+        IMPORTANT INSTRUCTIONS:
+        1. Return ONLY the JSON data - NO explanations, reasoning, or thought process
+        2. Each field should contain ONLY its value - no extra text or reasoning
+        3. Exercise names should be short and clean (e.g., "Squats" not "Squats (0:00-0:30) as shown...")
+        4. If you include a 'category' field, it MUST be exactly "workout"
+        5. Put extra context in "additional_context" field, NOT in other fields
         
-        IMPORTANT: If you include a 'category' field, it MUST be exactly "workout" (one of: workout, recipe, travel, product, educational, music).
-        
-        Return the data in JSON format matching this structure:
+        Return ONLY valid JSON in this format:
         {
             "title": "Workout title",
             "description": "Brief description",
@@ -531,7 +529,26 @@ class GeminiAnalyzer:
             )
             
             # Parse JSON response
-            json_data = json.loads(response.text)
+            response_text = response.text.strip()
+            
+            # Sometimes Gemini wraps JSON in markdown code blocks, clean it up
+            if response_text.startswith("```json"):
+                response_text = response_text.split("```json")[1].split("```")[0].strip()
+            elif response_text.startswith("```"):
+                response_text = response_text.split("```")[1].split("```")[0].strip()
+            
+            json_data = json.loads(response_text)
+            
+            # Clean up any fields that contain excessive text (Gemini thinking out loud)
+            # This is a safeguard against Gemini including reasoning in structured fields
+            if "exercises" in json_data and isinstance(json_data["exercises"], list):
+                for exercise in json_data["exercises"]:
+                    if "name" in exercise and isinstance(exercise["name"], str):
+                        # If the name is abnormally long (>100 chars), try to extract just the exercise name
+                        if len(exercise["name"]) > 100:
+                            # Take only the first line or first 50 characters
+                            first_line = exercise["name"].split("\n")[0].strip()
+                            exercise["name"] = first_line[:50] if len(first_line) > 50 else first_line
             
             # Set the category field based on the model class
             # Gemini might return incorrect category values, so we override it
