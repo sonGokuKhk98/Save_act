@@ -354,40 +354,47 @@ class GeminiAnalyzer:
     
     def _clean_schema_for_gemini(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Clean JSON schema to be compatible with Gemini API.
+        Clean JSON schema to be compatible with Gemini API using ALLOWLIST approach.
         
-        Gemini only supports a subset of JSON Schema fields. We need to remove:
-        - title, description (at root and property levels)
-        - example, examples
-        - default, defaultValue  
-        - format
-        - Other metadata fields
+        Instead of trying to block all unsupported fields (whack-a-mole),
+        we only keep the fields that Gemini DOES support. This is more robust.
         
-        Keep only: type, properties, items, required, enum, etc.
+        Gemini supports these core JSON Schema fields:
+        - type, properties, items, required, enum
+        - Validation: minimum, maximum, minLength, maxLength, minItems, maxItems
+        - pattern, exclusiveMinimum, exclusiveMaximum
         
         Args:
             schema: The schema dict to clean
         
         Returns:
-            Cleaned schema compatible with Gemini
+            Cleaned schema compatible with Gemini (only supported fields)
         """
         if isinstance(schema, dict):
             cleaned = {}
-            # Fields that Gemini API doesn't support - remove these
-            unsupported_fields = {
-                "title", "description", "example", "examples", 
-                "default", "defaultValue", "format", 
-                "additionalProperties", "$schema", "$id",
-                "const",  # Used for Literal types in Pydantic
-                "allOf", "anyOf", "oneOf",  # Schema composition
-                "definitions"  # Old-style definitions
+            # ALLOWLIST: Only keep fields that Gemini API supports
+            supported_fields = {
+                # Core schema fields
+                "type", "properties", "items", "required", "enum",
+                # Numeric validation
+                "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
+                "multipleOf",
+                # String validation
+                "minLength", "maxLength", "pattern",
+                # Array validation
+                "minItems", "maxItems", "uniqueItems",
+                # Object validation
+                "minProperties", "maxProperties",
+                # Type-specific
+                "nullable",
             }
             
             for key, value in schema.items():
-                if key in unsupported_fields:
-                    continue
-                # Recursively clean nested structures
-                cleaned[key] = self._clean_schema_for_gemini(value)
+                if key in supported_fields:
+                    # Recursively clean nested structures
+                    cleaned[key] = self._clean_schema_for_gemini(value)
+                # Silently skip any unsupported fields
+            
             return cleaned
         elif isinstance(schema, list):
             return [self._clean_schema_for_gemini(item) for item in schema]
