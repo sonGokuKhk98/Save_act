@@ -329,10 +329,14 @@ class GeminiAnalyzer:
         """
         Clean JSON schema to be compatible with Gemini API.
         
-        Removes fields that Gemini doesn't support:
-        - example, examples (from json_schema_extra)
-        - title (at root level, keeps it for properties)
-        - Other unsupported metadata
+        Gemini only supports a subset of JSON Schema fields. We need to remove:
+        - title, description (at root and property levels)
+        - example, examples
+        - default, defaultValue  
+        - format
+        - Other metadata fields
+        
+        Keep only: type, properties, items, required, enum, etc.
         
         Args:
             schema: The schema dict to clean
@@ -342,11 +346,15 @@ class GeminiAnalyzer:
         """
         if isinstance(schema, dict):
             cleaned = {}
-            # Fields to remove at any level
-            skip_fields = {"example", "examples"}
+            # Fields that Gemini API doesn't support - remove these
+            unsupported_fields = {
+                "title", "description", "example", "examples", 
+                "default", "defaultValue", "format", 
+                "additionalProperties", "$schema", "$id"
+            }
             
             for key, value in schema.items():
-                if key in skip_fields:
+                if key in unsupported_fields:
                     continue
                 # Recursively clean nested structures
                 cleaned[key] = self._clean_schema_for_gemini(value)
