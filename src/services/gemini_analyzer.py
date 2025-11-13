@@ -371,22 +371,17 @@ class GeminiAnalyzer:
             Cleaned schema compatible with Gemini (only supported fields)
         """
         if isinstance(schema, dict):
-            # ALLOWLIST: Only keep fields that Gemini API supports
+            # ALLOWLIST: Only keep fields that Gemini API explicitly supports
+            # Based on testing, Gemini only supports CORE structure fields, NO validation fields
             supported_fields = {
-                # Core schema fields
-                "type", "properties", "items", "required", "enum",
-                # Numeric validation
-                "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
-                "multipleOf",
-                # String validation
-                "minLength", "maxLength", "pattern",
-                # Array validation
-                "minItems", "maxItems", "uniqueItems",
-                # Object validation
-                "minProperties", "maxProperties",
-                # Type-specific
-                "nullable",
+                "type",        # Data type (string, number, object, array, boolean, null)
+                "properties",  # Object properties
+                "items",       # Array items
+                "required",    # Required fields
+                "enum",        # Enum values
             }
+            # Note: Gemini does NOT support validation fields like:
+            # minimum, maximum, minLength, maxLength, pattern, format, etc.
             
             cleaned = {}
             for key, value in schema.items():
