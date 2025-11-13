@@ -156,7 +156,9 @@ class GeminiAnalyzer:
         - Tips, modifications, safety notes
         - Any other contextual information
         
-        Return the data in JSON format matching this structure (DO NOT include 'category' field):
+        IMPORTANT: If you include a 'category' field, it MUST be exactly "workout" (one of: workout, recipe, travel, product, educational, music).
+        
+        Return the data in JSON format matching this structure:
         {
             "title": "Workout title",
             "description": "Brief description",
@@ -510,6 +512,13 @@ class GeminiAnalyzer:
             
             # Clean schema to remove unsupported fields (example, examples, etc.)
             json_schema = self._clean_schema_for_gemini(json_schema)
+            
+            # Add category enum constraint so Gemini knows valid values
+            # Even though we override it later, this helps guide Gemini's output
+            if "properties" in json_schema and "category" in json_schema["properties"]:
+                json_schema["properties"]["category"]["enum"] = [
+                    "workout", "recipe", "travel", "product", "educational", "music"
+                ]
             
             generation_config = genai.types.GenerationConfig(
                 response_mime_type="application/json",
