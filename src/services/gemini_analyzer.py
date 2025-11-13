@@ -325,6 +325,38 @@ class GeminiAnalyzer:
             transcript
         )
     
+    def _resolve_schema_refs(self, schema: Dict[str, Any], defs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Recursively resolve $ref references in a JSON schema by inlining definitions.
+        
+        Args:
+            schema: The schema dict to process
+            defs: The $defs dictionary containing referenced schemas
+        
+        Returns:
+            Schema with all $ref references resolved
+        """
+        if isinstance(schema, dict):
+            if "$ref" in schema:
+                # Extract the reference path (e.g., "#/$defs/Exercise")
+                ref_path = schema["$ref"]
+                if ref_path.startswith("#/$defs/"):
+                    ref_name = ref_path.split("/")[-1]
+                    if ref_name in defs:
+                        # Replace the reference with the actual definition
+                        resolved = defs[ref_name].copy()
+                        # Recursively resolve any refs in the resolved schema
+                        return self._resolve_schema_refs(resolved, defs)
+                return schema
+            else:
+                # Recursively process all values in the dict
+                return {k: self._resolve_schema_refs(v, defs) for k, v in schema.items()}
+        elif isinstance(schema, list):
+            # Recursively process all items in the list
+            return [self._resolve_schema_refs(item, defs) for item in schema]
+        else:
+            return schema
+    
     def _extract_structured_data(
         self,
         prompt: str,
@@ -368,6 +400,13 @@ class GeminiAnalyzer:
             # Generate response with JSON format and schema enforcement
             # Convert Pydantic model to JSON Schema for structured output
             json_schema = model_class.model_json_schema()
+            
+            # Remove $defs key as Gemini API doesn't support it
+            # This is a Pydantic v2 feature for nested schemas that needs to be cleaned
+            if "$defs" in json_schema:
+                defs = json_schema.pop("$defs")
+                # Inline the definitions by resolving $ref references
+                json_schema = self._resolve_schema_refs(json_schema, defs)
             
             generation_config = genai.types.GenerationConfig(
                 response_mime_type="application/json",
