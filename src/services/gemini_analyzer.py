@@ -371,7 +371,6 @@ class GeminiAnalyzer:
             Cleaned schema compatible with Gemini (only supported fields)
         """
         if isinstance(schema, dict):
-            cleaned = {}
             # ALLOWLIST: Only keep fields that Gemini API supports
             supported_fields = {
                 # Core schema fields
@@ -389,11 +388,41 @@ class GeminiAnalyzer:
                 "nullable",
             }
             
+            cleaned = {}
             for key, value in schema.items():
                 if key in supported_fields:
-                    # Recursively clean nested structures
-                    cleaned[key] = self._clean_schema_for_gemini(value)
-                # Silently skip any unsupported fields
+                    # Special handling for 'properties' - it's a dict of property definitions
+                    if key == "properties" and isinstance(value, dict):
+                        cleaned_props = {}
+                        for prop_name, prop_schema in value.items():
+                            # Recursively clean each property's schema
+                            cleaned_prop = self._clean_schema_for_gemini(prop_schema)
+                            # Only include if it has content
+                            if cleaned_prop:
+                                cleaned_props[prop_name] = cleaned_prop
+                        if cleaned_props:  # Only add properties if non-empty
+                            cleaned[key] = cleaned_props
+                    # Special handling for 'required' - filter out properties that don't exist
+                    elif key == "required" and isinstance(value, list):
+                        # We'll add this after we know which properties exist
+                        cleaned[key] = value
+                    else:
+                        # Recursively clean nested structures
+                        cleaned_value = self._clean_schema_for_gemini(value)
+                        if cleaned_value is not None and cleaned_value != {}:
+                            cleaned[key] = cleaned_value
+            
+            # Post-process: Filter 'required' to only include properties that exist
+            if "required" in cleaned and "properties" in cleaned:
+                valid_required = [
+                    req for req in cleaned["required"] 
+                    if req in cleaned["properties"]
+                ]
+                if valid_required:
+                    cleaned["required"] = valid_required
+                else:
+                    # Remove required if no valid fields
+                    del cleaned["required"]
             
             return cleaned
         elif isinstance(schema, list):
