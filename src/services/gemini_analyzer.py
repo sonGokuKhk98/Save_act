@@ -149,6 +149,13 @@ class GeminiAnalyzer:
         - Difficulty level (beginner/intermediate/advanced)
         - Music tempo in BPM (if detectable)
         
+        IMPORTANT: Put any additional context, metadata, or extra information that doesn't fit the 
+        structured fields into the "additional_context" field as a flexible JSON object. This can include:
+        - Trainer name, location, equipment used
+        - Video quality, hashtags, captions
+        - Tips, modifications, safety notes
+        - Any other contextual information
+        
         Return the data in JSON format matching this structure:
         {
             "title": "Workout title",
@@ -165,7 +172,12 @@ class GeminiAnalyzer:
             "total_rounds": 3,
             "estimated_duration_minutes": 20.0,
             "difficulty_level": "intermediate",
-            "music_tempo_bpm": 140
+            "music_tempo_bpm": 140,
+            "additional_context": {
+                "trainer": "Trainer name if visible",
+                "equipment": ["Dumbbells", "Mat"],
+                "notes": "Any additional tips or context"
+            }
         }
         """
         
@@ -194,6 +206,9 @@ class GeminiAnalyzer:
         - Utensils/tools needed for each step
         - Prep time, cook time, servings
         - Cuisine type
+        
+        IMPORTANT: Put any additional context (chef name, cooking tips, substitutions, 
+        difficulty level, dietary info, etc.) into the "additional_context" field.
         
         Return the data in JSON format.
         """
@@ -226,6 +241,9 @@ class GeminiAnalyzer:
         - Day-by-day breakdown (if applicable)
         - Estimated budget
         
+        IMPORTANT: Put any additional context (best season to visit, travel tips, 
+        local culture notes, accommodation suggestions, etc.) into the "additional_context" field.
+        
         Return the data in JSON format.
         """
         
@@ -254,6 +272,9 @@ class GeminiAnalyzer:
         - Currency
         - Purchase links (if visible in video)
         - Product categories
+        
+        IMPORTANT: Put any additional context (product reviews, features, 
+        comparisons, discount codes, affiliate info, etc.) into the "additional_context" field.
         
         Return the data in JSON format.
         """
@@ -284,6 +305,9 @@ class GeminiAnalyzer:
         - Prerequisites
         - Estimated time to complete
         
+        IMPORTANT: Put any additional context (instructor name, skill level, 
+        common mistakes, troubleshooting tips, etc.) into the "additional_context" field.
+        
         Return the data in JSON format.
         """
         
@@ -313,6 +337,9 @@ class GeminiAnalyzer:
         - Spotify link (if visible)
         - YouTube link (if visible)
         - Mood/vibe of the song
+        
+        IMPORTANT: Put any additional context (album name, release year, featured artists, 
+        music video description, instruments used, etc.) into the "additional_context" field.
         
         Return the data in JSON format.
         """
