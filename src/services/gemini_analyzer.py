@@ -156,7 +156,7 @@ class GeminiAnalyzer:
         - Tips, modifications, safety notes
         - Any other contextual information
         
-        Return the data in JSON format matching this structure:
+        Return the data in JSON format matching this structure (DO NOT include 'category' field):
         {
             "title": "Workout title",
             "description": "Brief description",
@@ -523,6 +523,19 @@ class GeminiAnalyzer:
             
             # Parse JSON response
             json_data = json.loads(response.text)
+            
+            # Set the category field based on the model class
+            # Gemini might return incorrect category values, so we override it
+            category_map = {
+                WorkoutRoutine: "workout",
+                RecipeCard: "recipe",
+                TravelItinerary: "travel",
+                ProductCatalog: "product",
+                TutorialSummary: "educational",
+                SongMetadata: "music"
+            }
+            if model_class in category_map:
+                json_data["category"] = category_map[model_class]
             
             # Clean up None values for required fields - provide defaults
             # This handles cases where Gemini doesn't return all required fields
