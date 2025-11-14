@@ -3,6 +3,8 @@ Test script for Instagram video download and extraction
 """
 import sys
 from main import ReelExtractor
+from src.services.supermemeory_client import SupermemeoryClient
+import json
 
 def test_instagram_video(instagram_url: str):
     """
@@ -77,7 +79,7 @@ def test_instagram_video(instagram_url: str):
         # Print full extraction data
         print(f" Full Extraction Data:")
         print(extraction.model_dump_json(indent=2))
-        
+
         if result["errors"]:
             print("  Warnings:")
             for error in result["errors"]:
@@ -102,5 +104,6 @@ if __name__ == "__main__":
     
     instagram_url = sys.argv[1]
     success = test_instagram_video(instagram_url)
+    storage = SupermemeoryClient()
     sys.exit(0 if success else 1)
 

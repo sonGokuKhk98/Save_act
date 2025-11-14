@@ -64,24 +64,27 @@ class SupermemeoryClient:
         """
         try:
             # Prepare payload
+            import json
             payload = {
-                "title": extraction.title,
-                "content": extraction.model_dump(),
-                "category": extraction.category,
-                "tags": self._generate_tags(extraction),
+                #"title": extraction.title,
+                "content": json.dumps(extraction.model_dump(mode="json")),
+                "container_tag": extraction.category,
+                #"container_tags": self._generate_tags(extraction),
                 "metadata": {
+                    "topic": extraction.title,
                     "source_url": source_url or extraction.source_url,
                     "extracted_at": extraction.extracted_at.isoformat(),
-                    "confidence_score": extraction.confidence_score
+                    "confidence_score": extraction.confidence_score,
+                    #"word_count": len(extraction.model_dump().split())
                 }
             }
-            
+
             # Use supermemory package if available
             if self.use_package:
                 try:
                     # Use the supermemory package API
                     # Note: The exact API may vary, adjust based on package documentation
-                    result = self.client.memories.create(**payload)
+                    result = self.client.memories.add(**payload)
                     return result.model_dump() if hasattr(result, 'model_dump') else result, None
                 except Exception as e:
                     return None, f"Supermemory package error: {str(e)}"
@@ -102,6 +105,55 @@ class SupermemeoryClient:
         except Exception as e:
             return None, f"Error storing extraction: {str(e)}"
     
+
+    def store_extraction1(
+        self, 
+        extraction: BaseExtraction,
+        source_url: Optional[str] = None
+    ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+        """
+        Store extracted data in supermemeory.ai.
+        
+        Args:
+            extraction: Extracted data model instance
+            source_url: Original video URL (optional)
+        
+        Returns:
+            Tuple of (response dict, error_message)
+        """
+        try:
+            # Prepare payload
+            import json
+            payload = {
+                #"title": extraction.title,
+                "content": json.dumps(extraction.model_dump(mode="json")),
+                "container_tag": extraction.category,
+                #"container_tags": self._generate_tags(extraction),
+                "metadata": {
+                    "topic": extraction.title,
+                    "source_url": source_url or extraction.source_url,
+                    "extracted_at": extraction.extracted_at.isoformat(),
+                    "confidence_score": extraction.confidence_score,
+                    #"word_count": len(extraction.model_dump().split())
+                }
+            }
+
+            import httpx
+            url = f"{self.base_url}/v3/documents"
+            
+            with httpx.Client(timeout=self.timeout) as client:
+                response = client.post(
+                    url,
+                    headers=self._get_headers(),
+                    json=payload
+                )
+                response.raise_for_status()
+                return response.json(), None
+                
+        except Exception as e:
+            return None, f"Error storing extraction: {str(e)}"
+
+
     def _generate_tags(self, extraction: BaseExtraction) -> list[str]:
         """
         Generate tags based on extraction category and content.
