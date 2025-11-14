@@ -12,7 +12,8 @@ from src.models import (
     TravelItinerary,
     ProductCatalog,
     TutorialSummary,
-    SongMetadata
+    SongMetadata,
+    GenericExtraction
 )
 
 
@@ -582,9 +583,28 @@ class GeminiAnalyzer:
                 instance = model_class(**mapped_data)
                 return instance, None
             except Exception as validation_error:
-                # If validation fails, return error with data
-                error_msg = str(validation_error)
-                return None, f"Validation error: {error_msg}. Mapped data: {json.dumps(mapped_data, indent=2)}"
+                # If validation fails, fall back to GenericExtraction
+                # This ensures no data is lost even if structure doesn't match
+                print(f"⚠️  Validation failed for {model_class.__name__}, falling back to GenericExtraction")
+                print(f"   Reason: {str(validation_error)[:200]}...")
+                
+                try:
+                    # Create a generic extraction with all the data
+                    generic_data = {
+                        "category": mapped_data.get("category", "unknown"),
+                        "title": mapped_data.get("title"),
+                        "description": mapped_data.get("description"),
+                        "source_url": mapped_data.get("source_url"),
+                        "confidence_score": mapped_data.get("confidence_score", 0.5),  # Lower confidence for fallback
+                        "raw_data": gemini_data  # Store ALL original data from Gemini
+                    }
+                    
+                    generic_instance = GenericExtraction(**generic_data)
+                    print(f"✓ Successfully created GenericExtraction fallback")
+                    return generic_instance, None
+                except Exception as generic_error:
+                    # Last resort: return error
+                    return None, f"Failed to create even generic extraction: {str(generic_error)}"
             
         except json.JSONDecodeError as e:
             return None, f"Invalid JSON response: {str(e)}"

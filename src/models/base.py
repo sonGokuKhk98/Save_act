@@ -2,7 +2,7 @@
 Base data model for all extraction types
 """
 from pydantic import BaseModel, Field
-from typing import Optional, Literal, Dict, Any
+from typing import Optional, Literal, Dict, Any, Union
 from datetime import datetime
 
 
@@ -61,4 +61,35 @@ class BaseExtraction(BaseModel):
                 }
             }
         }
+
+
+class GenericExtraction(BaseModel):
+    """
+    Generic fallback model for when structured extraction fails.
+    
+    This model accepts any JSON structure and stores everything flexibly.
+    Used as a safety net to ensure no data is lost when validation fails.
+    """
+    category: str = Field(..., description="Content category (workout, recipe, travel, etc.)")
+    title: Optional[str] = Field(None, description="Title if available")
+    description: Optional[str] = Field(None, description="Description if available")
+    source_url: Optional[str] = Field(None, description="Original URL of the reel/video")
+    extracted_at: datetime = Field(
+        default_factory=datetime.now,
+        description="Timestamp when extraction was performed"
+    )
+    confidence_score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score of the extraction (0.0 to 1.0)"
+    )
+    raw_data: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="All extracted data stored as flexible JSON"
+    )
+    
+    class Config:
+        """Pydantic configuration"""
+        extra = "allow"  # Allow any additional fields
 
