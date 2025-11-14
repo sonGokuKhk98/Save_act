@@ -472,6 +472,12 @@ class GeminiAnalyzer:
         Returns:
             Formatted and structured data dictionary
         """
+        # Sometimes Gemini returns a top-level list instead of an object.
+        # Normalize that into an { "items": [...] } structure so downstream
+        # logic can treat it consistently.
+        if isinstance(data, list):
+            data = {"items": data}
+
         formatted = {}
         
         # Common field name variations to normalize
@@ -578,6 +584,12 @@ class GeminiAnalyzer:
                 response_text = response_text.split("```")[1].split("```")[0].strip()
             
             gemini_data = json.loads(response_text)
+
+            # Normalize top-level list responses from Gemini into an object so that
+            # the rest of the logic (which expects a dict) can operate safely.
+            # Example: `[ {...}, {...} ]` -> `{ "items": [ {...}, {...} ] }`
+            if isinstance(gemini_data, list):
+                gemini_data = {"items": gemini_data}
             
             # Flexible mapping approach:
             # 1. Extract known fields that match our model
