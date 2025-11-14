@@ -650,18 +650,39 @@ class GeminiAnalyzer:
                     # Intelligently format the raw data for better readability
                     formatted_data = self._format_generic_data(gemini_data, model_class)
                     
-                    # Create a generic extraction with formatted data
+                    # Merge additional_context if it exists in mapped_data
+                    # This preserves extra information that was captured
+                    if "additional_context" in mapped_data and mapped_data["additional_context"]:
+                        if "additional_context" not in formatted_data:
+                            formatted_data["additional_context"] = {}
+                        # Merge the additional context
+                        if isinstance(formatted_data["additional_context"], dict):
+                            formatted_data["additional_context"].update(mapped_data["additional_context"])
+                        else:
+                            formatted_data["additional_context"] = mapped_data["additional_context"]
+                    
+                    # Also merge any extra_context that was separated out
+                    if extra_context:
+                        if "additional_context" not in formatted_data:
+                            formatted_data["additional_context"] = {}
+                        if isinstance(formatted_data["additional_context"], dict):
+                            formatted_data["additional_context"].update(extra_context)
+                        else:
+                            formatted_data["additional_context"] = extra_context
+                    
+                    # Create a generic extraction with ALL data preserved
                     generic_data = {
                         "category": mapped_data.get("category", "unknown"),
                         "title": formatted_data.get("title") or mapped_data.get("title"),
                         "description": formatted_data.get("description") or mapped_data.get("description"),
                         "source_url": mapped_data.get("source_url"),
                         "confidence_score": mapped_data.get("confidence_score", 0.5),  # Lower confidence for fallback
-                        "raw_data": formatted_data  # Store formatted data
+                        "raw_data": formatted_data  # Store ALL formatted data including additional_context
                     }
                     
                     generic_instance = GenericExtraction(**generic_data)
                     print(f"✓ Successfully created GenericExtraction fallback with formatted data")
+                    print(f"   Preserved {len(formatted_data)} fields in raw_data")
                     return generic_instance, None
                 except Exception as generic_error:
                     # Last resort: return error

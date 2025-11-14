@@ -132,9 +132,28 @@ class GenericExtraction(BaseModel):
                 field_name = field.replace("_", " ").title()
                 lines.append(f"{field_name}: {self.raw_data[field]}")
         
+        # Show additional_context if it exists
+        if "additional_context" in self.raw_data and self.raw_data["additional_context"]:
+            lines.append(f"\nAdditional Context:")
+            ctx = self.raw_data["additional_context"]
+            if isinstance(ctx, dict):
+                for key, value in list(ctx.items())[:5]:  # Show first 5 items
+                    key_display = key.replace("_", " ").title()
+                    if isinstance(value, list):
+                        lines.append(f"  {key_display}: {len(value)} items")
+                    elif isinstance(value, str) and len(value) > 50:
+                        lines.append(f"  {key_display}: {value[:50]}...")
+                    else:
+                        lines.append(f"  {key_display}: {value}")
+                if len(ctx) > 5:
+                    lines.append(f"  ... and {len(ctx) - 5} more fields")
+        
         # Add fallback note
         if "_original_category" in self.raw_data:
             lines.append(f"\n⚠️  Note: Intended for {self.raw_data['_original_category']} but used generic format")
+        
+        # Show total fields preserved
+        lines.append(f"\n📊 Total fields preserved: {len(self.raw_data)}")
         
         return "\n".join(lines)
 
