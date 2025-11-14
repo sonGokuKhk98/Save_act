@@ -63,9 +63,8 @@ class ProductCatalog(BaseExtraction):
         )
     """
     category: Literal["product"] = "product"
-    products: List[Product] = Field(
-        ..., 
-        min_length=1, 
-        description="List of products found in the video"
+    products: Optional[List[Product]] = Field(
+        default=None, 
+        description="List of products found in the video (if extractable)"
     )
 

@@ -2,7 +2,7 @@
 Data models for all extraction categories
 """
 
-from .base import BaseExtraction
+from .base import BaseExtraction, GenericExtraction
 from .workout import WorkoutRoutine, Exercise
 from .recipe import RecipeCard, Ingredient, RecipeStep
 from .travel import TravelItinerary, Activity
@@ -12,6 +12,7 @@ from .music import SongMetadata
 
 __all__ = [
     "BaseExtraction",
+    "GenericExtraction",
     "WorkoutRoutine",
     "Exercise",
     "RecipeCard",

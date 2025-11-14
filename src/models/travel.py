@@ -58,11 +58,10 @@ class TravelItinerary(BaseExtraction):
         )
     """
     category: Literal["travel"] = "travel"
-    destination: str = Field(..., description="Main destination or location")
-    activities: List[Activity] = Field(
-        ..., 
-        min_length=1, 
-        description="List of activities and places to visit"
+    destination: Optional[str] = Field(None, description="Main destination or location (if extractable)")
+    activities: Optional[List[Activity]] = Field(
+        default=None, 
+        description="List of activities and places to visit (if extractable)"
     )
     day_breakdown: Optional[List[Dict[str, Any]]] = Field(
         None, 

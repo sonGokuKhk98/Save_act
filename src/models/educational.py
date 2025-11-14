@@ -57,11 +57,10 @@ class TutorialSummary(BaseExtraction):
         )
     """
     category: Literal["educational"] = "educational"
-    topic: str = Field(..., description="Topic or subject of the tutorial")
-    steps: List[TutorialStep] = Field(
-        ..., 
-        min_length=1, 
-        description="Step-by-step instructions"
+    topic: Optional[str] = Field(None, description="Topic or subject of the tutorial (if extractable)")
+    steps: Optional[List[TutorialStep]] = Field(
+        default=None, 
+        description="Step-by-step instructions (if extractable)"
     )
     prerequisites: List[str] = Field(
         default_factory=list, 
