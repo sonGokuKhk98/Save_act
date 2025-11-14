@@ -746,4 +746,3 @@ class GeminiAnalyzer:
         
         extractor = category_extractors[preferred_category]
         return extractor(video_path, keyframes, transcript)
-

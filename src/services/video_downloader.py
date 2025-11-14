@@ -159,4 +159,3 @@ class VideoDownloader:
             return self.process_local_file(input_source)
         else:
             return None, f"Unknown source type: {source_type}"
-
