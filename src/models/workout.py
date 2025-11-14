@@ -61,10 +61,9 @@ class WorkoutRoutine(BaseExtraction):
         )
     """
     category: Literal["workout"] = "workout"
-    exercises: List[Exercise] = Field(
-        ..., 
-        min_length=1, 
-        description="List of exercises in the workout"
+    exercises: Optional[List[Exercise]] = Field(
+        default=None, 
+        description="List of exercises in the workout (if extractable)"
     )
     total_rounds: Optional[int] = Field(
         None, 

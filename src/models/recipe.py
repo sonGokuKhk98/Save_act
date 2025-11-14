@@ -76,15 +76,13 @@ class RecipeCard(BaseExtraction):
         )
     """
     category: Literal["recipe"] = "recipe"
-    ingredients: List[Ingredient] = Field(
-        ..., 
-        min_length=1, 
-        description="List of ingredients needed"
+    ingredients: Optional[List[Ingredient]] = Field(
+        default=None, 
+        description="List of ingredients needed (if extractable)"
     )
-    steps: List[RecipeStep] = Field(
-        ..., 
-        min_length=1, 
-        description="Step-by-step cooking instructions"
+    steps: Optional[List[RecipeStep]] = Field(
+        default=None, 
+        description="Step-by-step cooking instructions (if extractable)"
     )
     prep_time_minutes: Optional[int] = Field(
         None, 

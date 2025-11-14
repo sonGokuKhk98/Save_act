@@ -21,8 +21,8 @@ class BaseExtraction(BaseModel):
         "educational", 
         "music"
     ]
-    title: str = Field(..., description="Title of the extracted content")
-    description: str = Field(..., description="Brief description of the content")
+    title: Optional[str] = Field(None, description="Title of the extracted content")
+    description: Optional[str] = Field(None, description="Brief description of the content")
     source_url: Optional[str] = Field(
         None, 
         description="Original URL of the reel/video"
