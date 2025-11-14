@@ -36,3 +36,5 @@ asyncio>=3.4.3
 python-multipart>=0.0.6  # For file uploads if building API
 aiofiles>=23.2.0  # For async file operations
 
+fastapi
+uvicorn[standard]

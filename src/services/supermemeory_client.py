@@ -179,4 +179,3 @@ class SupermemeoryClient:
                 
         except Exception as e:
             return None, f"Error searching memories: {str(e)}"
-

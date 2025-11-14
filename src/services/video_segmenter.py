@@ -231,4 +231,3 @@ class VideoSegmenter:
                         print("ℹ️  Continuing without audio transcript...")
         
         return result
-
