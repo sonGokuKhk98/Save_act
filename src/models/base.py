@@ -92,4 +92,49 @@ class GenericExtraction(BaseModel):
     class Config:
         """Pydantic configuration"""
         extra = "allow"  # Allow any additional fields
+    
+    def get_formatted_summary(self) -> str:
+        """
+        Get a nicely formatted summary of the extracted data.
+        
+        Returns:
+            Formatted string representation
+        """
+        lines = []
+        lines.append(f"Category: {self.category}")
+        
+        if self.title:
+            lines.append(f"Title: {self.title}")
+        
+        if self.description:
+            lines.append(f"Description: {self.description}")
+        
+        lines.append(f"Confidence: {self.confidence_score:.2f}")
+        
+        # Format main content items
+        if "items" in self.raw_data:
+            items = self.raw_data["items"]
+            if isinstance(items, list):
+                lines.append(f"\nItems ({len(items)}):")
+                for i, item in enumerate(items[:10], 1):  # Show first 10
+                    if isinstance(item, dict):
+                        name = item.get("name", item.get("item", "Unknown"))
+                        lines.append(f"  {i}. {name}")
+                    else:
+                        lines.append(f"  {i}. {item}")
+                if len(items) > 10:
+                    lines.append(f"  ... and {len(items) - 10} more")
+        
+        # Show other interesting fields
+        interesting_fields = ["cuisine_type", "difficulty_level", "destination", "estimated_duration_minutes"]
+        for field in interesting_fields:
+            if field in self.raw_data and self.raw_data[field]:
+                field_name = field.replace("_", " ").title()
+                lines.append(f"{field_name}: {self.raw_data[field]}")
+        
+        # Add fallback note
+        if "_original_category" in self.raw_data:
+            lines.append(f"\n⚠️  Note: Intended for {self.raw_data['_original_category']} but used generic format")
+        
+        return "\n".join(lines)
 

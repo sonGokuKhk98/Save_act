@@ -458,6 +458,64 @@ class GeminiAnalyzer:
         else:
             return schema
     
+    def _format_generic_data(self, data: Dict[str, Any], model_class) -> Dict[str, Any]:
+        """
+        Intelligently format and structure data for GenericExtraction.
+        
+        Attempts to map common field variations to standard names and organize data
+        in a readable format even when it doesn't match our exact schema.
+        
+        Args:
+            data: Raw data from Gemini
+            model_class: The model class that failed validation
+        
+        Returns:
+            Formatted and structured data dictionary
+        """
+        formatted = {}
+        
+        # Common field name variations to normalize
+        field_mappings = {
+            "title": ["title", "name", "recipe_name", "workout_name", "song_title", "topic"],
+            "description": ["description", "desc", "summary", "overview", "notes"],
+            "items": ["items", "list", "ingredients", "exercises", "activities", "products", "steps"],
+        }
+        
+        # Try to extract and normalize common fields
+        for standard_name, variations in field_mappings.items():
+            for variation in variations:
+                if variation in data and data[variation]:
+                    formatted[standard_name] = data[variation]
+                    break
+        
+        # Format lists/arrays nicely
+        for key, value in data.items():
+            if isinstance(value, list) and value:
+                # Try to format list items
+                formatted_list = []
+                for item in value:
+                    if isinstance(item, dict):
+                        # Normalize dictionary keys (e.g., "item" -> "name")
+                        formatted_item = {}
+                        for k, v in item.items():
+                            # Common key normalizations
+                            if k in ["item", "exercise", "activity", "product"]:
+                                formatted_item["name"] = v
+                            else:
+                                formatted_item[k] = v
+                        formatted_list.append(formatted_item)
+                    else:
+                        formatted_list.append(item)
+                formatted[key] = formatted_list
+            elif key not in formatted:  # Don't overwrite already formatted fields
+                formatted[key] = value
+        
+        # Add metadata about what category this was intended for
+        formatted["_original_category"] = model_class.__name__
+        formatted["_fallback_reason"] = "Field name mismatch or validation error"
+        
+        return formatted
+    
     def _extract_structured_data(
         self,
         prompt: str,
@@ -589,18 +647,21 @@ class GeminiAnalyzer:
                 print(f"   Reason: {str(validation_error)[:200]}...")
                 
                 try:
-                    # Create a generic extraction with all the data
+                    # Intelligently format the raw data for better readability
+                    formatted_data = self._format_generic_data(gemini_data, model_class)
+                    
+                    # Create a generic extraction with formatted data
                     generic_data = {
                         "category": mapped_data.get("category", "unknown"),
-                        "title": mapped_data.get("title"),
-                        "description": mapped_data.get("description"),
+                        "title": formatted_data.get("title") or mapped_data.get("title"),
+                        "description": formatted_data.get("description") or mapped_data.get("description"),
                         "source_url": mapped_data.get("source_url"),
                         "confidence_score": mapped_data.get("confidence_score", 0.5),  # Lower confidence for fallback
-                        "raw_data": gemini_data  # Store ALL original data from Gemini
+                        "raw_data": formatted_data  # Store formatted data
                     }
                     
                     generic_instance = GenericExtraction(**generic_data)
-                    print(f"✓ Successfully created GenericExtraction fallback")
+                    print(f"✓ Successfully created GenericExtraction fallback with formatted data")
                     return generic_instance, None
                 except Exception as generic_error:
                     # Last resort: return error
