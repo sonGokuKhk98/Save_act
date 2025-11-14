@@ -72,6 +72,7 @@ class SupermemeoryClient:
                 #"container_tags": self._generate_tags(extraction),
                 "metadata": {
                     "topic": extraction.title,
+                    "category": extraction.category,
                     "source_url": source_url or extraction.source_url,
                     "extracted_at": extraction.extracted_at.isoformat(),
                     "confidence_score": extraction.confidence_score,

@@ -41,21 +41,21 @@ Despite the promise, significant challenges remain: quantum decoherence, error c
 # print(f"Content length: {len(memory_content)} characters")
 
 
-results = client.search.memories(q="give me all workouts?", limit=3)
-print(results)
+# results = client.search.memories(q="give me routine for skin care for melasma?", limit=3,include={"documents":True})
+# print(results)
 
-# import requests
+import requests
 
-# url = "https://api.supermemory.ai/v3/search"
+url = "https://api.supermemory.ai/v3/search"
 
-# payload = { "q": "workout" }
-# headers = {
-#     "Authorization": "Bearer sm_8PFFHrpK7x9oKvNapkispJ_AjAIQpXivxuGJOsEiTCIDVegSpzdlbVbWwLOdLoRidQskOPsXayOoXsEEsObNCRy",
-#     "Content-Type": "application/json"
-# }
+payload = { "q": "give me routine for skin care for melasma?" ,"chunkThreshold":0.6}
+headers = {
+    "Authorization": "Bearer sm_8PFFHrpK7x9oKvNapkispJ_AjAIQpXivxuGJOsEiTCIDVegSpzdlbVbWwLOdLoRidQskOPsXayOoXsEEsObNCRy",
+    "Content-Type": "application/json"
+}
 
-# response = requests.post(url, json=payload, headers=headers)
+response = requests.post(url, json=payload, headers=headers)
 
-# print(response.json())
+print(response.json())
 
 
