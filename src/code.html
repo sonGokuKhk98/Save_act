@@ -385,8 +385,8 @@ AI-generated view based on this keyframe. For products, you can also use Google 
   // leftover / generic additional_context into ONE rich section. Instead of
   // rebuilding all structured fields, we:
   //   - optionally refresh heading/subtitle
-  //   - hide the Key Items / Details / Steps sections
-  //   - replace the Additional Context area with the AI-generated rich block.
+  //   - leave any populated Key Items / Details / Steps sections intact
+  //   - replace only the Additional Context area with the AI-generated rich block.
   function applyReconstructPlan(plan) {
     if (!plan || !plan.rich_text || typeof plan.rich_text !== 'string') return;
 
@@ -409,18 +409,6 @@ AI-generated view based on this keyframe. For products, you can also use Google 
     if (window.__EXTRACTION__ && window.__EXTRACTION__.extraction) {
       window.__EXTRACTION__.extraction = extraction;
     }
-
-    // Hide the multi-section "schema-first" view; for messy/generic cases
-    // the reconstructed section becomes the primary experience.
-    const sectionsToHide = [
-      'gx-key-items-section',
-      'gx-details-section',
-      'gx-steps-section',
-    ];
-    sectionsToHide.forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.classList.add('hidden');
-    });
 
     // Show Additional Context and replace its content with the AI-rich block.
     const additionalSection = document.getElementById('gx-additional-section');
