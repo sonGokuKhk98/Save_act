@@ -26,7 +26,9 @@ class Config:
     
     # Processing Configuration
     MAX_VIDEO_SIZE_MB: int = int(os.getenv("MAX_VIDEO_SIZE_MB", "500"))
-    KEYFRAME_INTERVAL_SECONDS: int = int(os.getenv("KEYFRAME_INTERVAL_SECONDS", "3"))
+    # Slightly higher default interval to reduce processing time and uploads.
+    # Can be overridden via KEYFRAME_INTERVAL_SECONDS env var.
+    KEYFRAME_INTERVAL_SECONDS: int = int(os.getenv("KEYFRAME_INTERVAL_SECONDS", "5"))
     MAX_VIDEO_DURATION_MINUTES: int = int(os.getenv("MAX_VIDEO_DURATION_MINUTES", "5"))
     
     # Storage Configuration

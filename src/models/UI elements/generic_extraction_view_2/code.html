@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Generic Extraction View - Variant 2</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d93f2",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101b22",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+                'FILL' 0,
+                'wght' 400,
+                'GRAD' 0,
+                'opsz' 24
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-white/90">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark">
+<div class="flex flex-col gap-2 bg-[#101b22] px-4 pt-4 pb-2 sticky top-0 z-10 border-b border-white/10">
+<div class="flex items-center h-12 justify-between">
+<div class="flex size-12 shrink-0 items-center -ml-3">
+<span class="material-symbols-outlined text-white/90">arrow_back</span>
+</div>
+<div class="flex w-12 items-center justify-end">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-transparent text-white/90 gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
+<div class="text-white/90">
+<span class="material-symbols-outlined">more_vert</span>
+</div>
+</button>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<p class="text-white tracking-light text-[28px] font-bold leading-tight">Chocolate Chip Cookies</p>
+<span class="material-symbols-outlined text-white/70">link</span>
+</div>
+<div class="flex gap-3 pt-2 flex-wrap pb-2">
+<div class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-[#223949] px-4">
+<p class="text-white text-base font-medium leading-normal">Recipe</p>
+</div>
+<div class="flex h-9 shrink-0 items-center justify-center gap-x-1 rounded-full bg-green-900/50 pl-2 pr-3 border border-green-500/50">
+<span class="material-symbols-outlined text-green-300 text-base !-mr-1">signal_cellular_alt</span>
+<p class="text-green-300 text-sm font-medium leading-normal">High</p>
+</div>
+</div>
+<p class="text-white/70 text-base font-normal leading-normal pb-3 pt-1">AI-generated generic view. Some fields could not be fully structured.</p>
+</div>
+<div class="flex flex-col space-y-8 p-4">
+<div class="flex flex-col">
+<h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-4">Key Items</h3>
+<div class="flex flex-col gap-4">
+<div class="flex flex-col">
+<p class="text-white text-base font-bold">All-Purpose Flour</p>
+<p class="text-[#90b2cb] text-sm">Quantity: 2 cups</p>
+</div>
+<div class="flex flex-col">
+<p class="text-white text-base font-bold">Chocolate Chips</p>
+<p class="text-[#90b2cb] text-sm">Quantity: 1.5 cups</p>
+</div>
+<div class="flex flex-col">
+<p class="text-white text-base font-bold">Unsalted Butter</p>
+<p class="text-[#90b2cb] text-sm">Quantity: 1 cup, softened</p>
+</div>
+<p class="text-[#90b2cb] text-base font-normal leading-normal pt-1">... and 7 more</p>
+</div>
+</div>
+<div class="w-full h-px bg-white/10"></div>
+<div class="flex flex-col">
+<h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-4">Details</h3>
+<div class="flex flex-col gap-4">
+<div class="flex flex-col">
+<p class="text-[#90b2cb] text-sm font-normal">Cuisine Type</p>
+<p class="text-white text-base font-medium">American</p>
+</div>
+<div class="flex flex-col">
+<p class="text-[#90b2cb] text-sm font-normal">Difficulty Level</p>
+<p class="text-white text-base font-medium">Easy</p>
+</div>
+<div class="flex flex-col">
+<p class="text-[#90b2cb] text-sm font-normal">Est. Duration</p>
+<p class="text-white text-base font-medium">30 minutes</p>
+</div>
+</div>
+</div>
+<div class="w-full h-px bg-white/10"></div>
+<div class="flex flex-col">
+<h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-4">Additional Context</h3>
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-[#90b2cb] text-sm font-normal">Utensils</p>
+<p class="text-white text-base font-medium">3 items</p>
+</div>
+<span class="material-symbols-outlined text-white/50">expand_more</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col flex-1 min-w-0">
+<p class="text-[#90b2cb] text-sm font-normal">Dietary Notes</p>
+<p class="text-white text-base font-medium truncate">Contains gluten, dairy, and eggs. Can be made vegan by substituting butter...</p>
+</div>
+<span class="material-symbols-outlined text-white/50 ml-2">expand_more</span>
+</div>
+<div class="flex flex-col">
+<p class="text-[#90b2cb] text-sm font-normal">Oven Temp</p>
+<p class="text-white text-base font-medium">375°F (190°C)</p>
+</div>
+</div>
+<p class="text-[#90b2cb] text-base font-normal pt-4">... and 2 more</p>
+</div>
+<div class="w-full h-px bg-white/10"></div>
+<div class="flex flex-col">
+<button class="flex items-center gap-2 text-primary">
+<p class="text-base font-bold">View Raw Data</p>
+<span class="material-symbols-outlined">code</span>
+</button>
+<div class="mt-4 rounded-lg bg-[#1E1E1E] p-4 hidden">
+<pre class="text-[#EAEAEA] text-xs font-mono overflow-x-auto"><code>...</code></pre>
+</div>
+</div>
+</div>
+<div class="px-4 pt-4 pb-8 mt-auto">
+<div class="flex items-start gap-2 text-center w-full justify-center">
+<span class="material-symbols-outlined text-base text-white/50 mt-0.5">info</span>
+<p class="text-white/50 text-sm font-normal leading-normal max-w-xs">Auto-formatted generic view. Original type: recipe_v2. Reason: Key fields missing.</p>
+</div>
+</div>
+</div>
+
+</body></html>

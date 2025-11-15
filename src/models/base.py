@@ -59,8 +59,8 @@ class BaseExtraction(BaseModel):
                     "location": "Outdoor park",
                     "hashtags": ["#fitness", "#hiit", "#workout"],
                     "any_other_info": "Flexible storage for any extra data"
-                }
             }
+        }
         }
 
 

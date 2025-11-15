@@ -88,10 +88,9 @@ class GeminiAnalyzer:
             # Build content for analysis
             content_parts = [prompt]
             
-            # Add video if provided
-            if video_path and video_path.exists():
-                video_file = genai.upload_file(path=str(video_path))
-                content_parts.append(video_file)
+            # NOTE: We intentionally skip uploading the full video file for
+            # performance. Keyframes + optional transcript provide enough
+            # signal for high-quality category detection.
             
             # Add keyframes if provided
             if keyframes:
@@ -547,10 +546,10 @@ class GeminiAnalyzer:
             # Build content for analysis
             content_parts = [prompt]
             
-            # Add video if provided
-            if video_path and video_path.exists():
-                video_file = genai.upload_file(path=str(video_path))
-                content_parts.append(video_file)
+            # NOTE: We intentionally skip uploading the full video file here
+            # to keep analysis fast and lightweight. Gemini receives a set of
+            # keyframe images plus the transcript (when available), which is
+            # usually sufficient for high-quality extraction.
             
             # Add keyframes if provided
             if keyframes:

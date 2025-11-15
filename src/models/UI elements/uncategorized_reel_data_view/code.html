@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Undefined Reel</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#0d93f2",
+            "background-light": "#f5f7f8",
+            "background-dark": "#101b22",
+          },
+          fontFamily: {
+            "display": ["Manrope", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body>
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark font-display" style="font-family: Manrope, 'Noto Sans', sans-serif;">
+<!-- Top App Bar -->
+<div class="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10">
+<div class="flex size-12 shrink-0 items-center justify-start">
+<span class="material-symbols-outlined text-gray-800 dark:text-white">arrow_back</span>
+</div>
+<h1 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Undefined Reel</h1>
+<div class="flex w-12 items-center justify-end">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-transparent text-gray-800 dark:text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Header Image / Video Thumbnail -->
+<div class="@container px-4">
+<div class="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-xl min-h-[218px]" data-alt="Video thumbnail showing a person working on a laptop in a modern office setting" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD0hF-y9RZKOdPQK67-_cUPgw5lPLYcQCx31yhlvGSJI1kLvEzXGei207iExQVtGqfVQzoy4NmKc3tdAWB5ks3S_hjnWjMHKEi_Q9ZbVAYYSclJBNLRbmKUX1eiQKzRzZs_9yF0or-NdUg_3ZvMFhWll9cUb2eyUrx4jZrCERIUTlp2e3tKhejfVe2Z8FqoyvvAQEHI94SSYvLIuT-KkaRt3VszDMTKbC70OftFBhav-2tMh-oCCeJk5kM9Ckcs0kDUXDzhofXhIUCE");'></div>
+</div>
+<!-- Action Panel -->
+<div class="p-4 @container">
+<div class="flex flex-1 flex-col items-start justify-between gap-4 rounded-xl border border-gray-200 dark:border-[#315168] bg-white dark:bg-[#101b22] p-5 @[480px]:flex-row @[480px]:items-center">
+<div class="flex flex-col gap-1">
+<p class="text-gray-900 dark:text-white text-base font-bold leading-tight">Help Us Understand this Reel</p>
+<p class="text-gray-500 dark:text-[#90b2cb] text-base font-normal leading-normal">Assign a category to unlock structured data and insights.</p>
+</div>
+<button class="flex w-full @[480px]:w-auto min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-medium leading-normal">
+<span class="truncate">Assign a Category</span>
+</button>
+</div>
+</div>
+<!-- Accordions with content -->
+<div class="flex flex-col px-4 gap-3">
+<!-- Accordion 1: Extracted Text -->
+<details class="flex flex-col rounded-xl bg-gray-100 dark:bg-[#223949] px-4 group" open="">
+<summary class="flex cursor-pointer items-center justify-between gap-6 py-3">
+<p class="text-gray-900 dark:text-white text-sm font-medium leading-normal">Extracted Text</p>
+<div class="flex items-center gap-4">
+<button>
+<span class="material-symbols-outlined text-gray-500 dark:text-white text-base">content_copy</span>
+</button>
+<span class="material-symbols-outlined text-gray-500 dark:text-white group-open:rotate-180 transition-transform duration-200">expand_more</span>
+</div>
+</summary>
+<div class="pb-3">
+<p class="text-gray-600 dark:text-[#90b2cb] text-sm font-normal leading-normal">
+            "Welcome to our quick tutorial on leveraging Gemini AI for data analysis. Today, we're diving into a real-world example from our San Francisco office. As you can see on this laptop, the model is processing video content in real-time. Jane Doe, our lead data scientist, will walk us through the process. Notice how it identifies key entities, objects, and activities instantly. This is the future of intelligent data extraction."
+          </p>
+</div>
+</details>
+<!-- Accordion 2: Key Entities with Chips -->
+<details class="flex flex-col rounded-xl bg-gray-100 dark:bg-[#223949] px-4 group" open="">
+<summary class="flex cursor-pointer items-center justify-between gap-6 py-3">
+<p class="text-gray-900 dark:text-white text-sm font-medium leading-normal">Key Entities</p>
+<span class="material-symbols-outlined text-gray-500 dark:text-white group-open:rotate-180 transition-transform duration-200">expand_more</span>
+</summary>
+<div class="flex gap-2 p-1 flex-wrap pb-3">
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-background-light dark:bg-[#101b22] px-3">
+<p class="text-gray-800 dark:text-white text-sm font-medium leading-normal">Person: Jane Doe</p>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-background-light dark:bg-[#101b22] px-3">
+<p class="text-gray-800 dark:text-white text-sm font-medium leading-normal">Brand: Gemini AI</p>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-background-light dark:bg-[#101b22] px-3">
+<p class="text-gray-800 dark:text-white text-sm font-medium leading-normal">Place: San Francisco</p>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-background-light dark:bg-[#101b22] px-3">
+<p class="text-gray-800 dark:text-white text-sm font-medium leading-normal">Object: Laptop</p>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-background-light dark:bg-[#101b22] px-3">
+<p class="text-gray-800 dark:text-white text-sm font-medium leading-normal">Activity: Data Analysis</p>
+</div>
+</div>
+</details>
+<!-- Accordion 3: Timeline & Key Moments -->
+<details class="flex flex-col rounded-xl bg-gray-100 dark:bg-[#223949] px-4 group">
+<summary class="flex cursor-pointer items-center justify-between gap-6 py-3">
+<p class="text-gray-900 dark:text-white text-sm font-medium leading-normal">Timeline &amp; Key Moments</p>
+<span class="material-symbols-outlined text-gray-500 dark:text-white group-open:rotate-180 transition-transform duration-200">expand_more</span>
+</summary>
+<div class="flex flex-col gap-3 pb-3">
+<div class="flex items-start gap-3">
+<p class="text-primary text-sm font-semibold w-12">0:03</p>
+<p class="flex-1 text-gray-600 dark:text-[#90b2cb] text-sm font-normal leading-normal">Introduction to Gemini AI for data analysis.</p>
+</div>
+<div class="flex items-start gap-3">
+<p class="text-primary text-sm font-semibold w-12">0:08</p>
+<p class="flex-1 text-gray-600 dark:text-[#90b2cb] text-sm font-normal leading-normal">Laptop screen shows real-time video processing.</p>
+</div>
+<div class="flex items-start gap-3">
+<p class="text-primary text-sm font-semibold w-12">0:12</p>
+<p class="flex-1 text-gray-600 dark:text-[#90b2cb] text-sm font-normal leading-normal">Jane Doe is introduced as the lead data scientist.</p>
+</div>
+<div class="flex items-start gap-3">
+<p class="text-primary text-sm font-semibold w-12">0:19</p>
+<p class="flex-1 text-gray-600 dark:text-[#90b2cb] text-sm font-normal leading-normal">Demonstration of key entity and object identification.</p>
+</div>
+</div>
+</details>
+</div>
+<div class="h-5 bg-transparent"></div> <!-- Spacer at the bottom -->
+</div>
+</body></html>
