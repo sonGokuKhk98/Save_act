@@ -695,17 +695,29 @@ AI-generated view based on this keyframe. For products, you can also use Google 
           html += '<p class="text-white/70 text-sm mb-2">Products for Sale:</p>';
           html += '<div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">';
           products.slice(0, 6).forEach(product => {
+              const priceDisplay = product.price && product.currency 
+                  ? `${escapeHtml(product.price)} ${escapeHtml(product.currency)}`
+                  : product.price 
+                      ? escapeHtml(product.price)
+                      : '';
+              
               html += `
                   <a href="${escapeHtml(product.link || '#')}" 
                     target="_blank"
                     class="flex flex-col gap-2 bg-[#1a2730] rounded-lg p-2 hover:bg-[#1e2f3a] transition-colors">
-                      <img src="${escapeHtml(product.thumbnail || '')}" 
-                          class="w-full h-24 object-cover rounded"
-                          onerror="this.src='https://via.placeholder.com/150?text=No+Image'"
-                          loading="lazy"/>
+                      <div class="relative">
+                          <img src="${escapeHtml(product.thumbnail || '')}" 
+                              class="w-full h-24 object-cover rounded"
+                              onerror="this.src='https://via.placeholder.com/150?text=No+Image'"
+                              loading="lazy"/>
+                          ${priceDisplay ? `
+                              <div class="absolute bottom-1 left-1 right-1 bg-black/80 backdrop-blur-sm rounded px-2 py-1">
+                                  <p class="text-green-400 text-xs font-bold text-center">${priceDisplay}</p>
+                              </div>
+                          ` : ''}
+                      </div>
                       <div class="flex flex-col gap-1">
                           <p class="text-white text-xs font-medium line-clamp-2" title="${escapeHtml(product.title || 'Product')}">${escapeHtml(product.title || 'Product')}</p>
-                          ${product.price ? `<p class="text-green-400 text-xs font-bold">${escapeHtml(product.price)}</p>` : ''}
                           <p class="text-white/50 text-xs truncate">${escapeHtml(product.source || '')}</p>
                       </div>
                   </a>
@@ -719,14 +731,27 @@ AI-generated view based on this keyframe. For products, you can also use Google 
           html += '<p class="text-white/70 text-sm mb-2">Similar Images:</p>';
           html += '<div class="grid grid-cols-2 md:grid-cols-3 gap-3">';
           visuals.slice(0, 6).forEach(visual => {
+              const priceDisplay = visual.price && visual.currency 
+                  ? `${escapeHtml(visual.price)} ${escapeHtml(visual.currency)}`
+                  : visual.price 
+                      ? escapeHtml(visual.price)
+                      : '';
+              
               html += `
                   <a href="${escapeHtml(visual.link || '#')}" 
                     target="_blank"
                     class="flex flex-col gap-2 bg-[#1a2730] rounded-lg p-2 hover:bg-[#1e2f3a] transition-colors">
-                      <img src="${escapeHtml(visual.thumbnail || '')}" 
-                          class="w-full h-24 object-cover rounded"
-                          onerror="this.src='https://via.placeholder.com/150?text=No+Image'"
-                          loading="lazy"/>
+                      <div class="relative">
+                          <img src="${escapeHtml(visual.thumbnail || '')}" 
+                              class="w-full h-24 object-cover rounded"
+                              onerror="this.src='https://via.placeholder.com/150?text=No+Image'"
+                              loading="lazy"/>
+                          ${priceDisplay ? `
+                              <div class="absolute bottom-1 left-1 right-1 bg-black/80 backdrop-blur-sm rounded px-2 py-1">
+                                  <p class="text-green-400 text-xs font-bold text-center">${priceDisplay}</p>
+                              </div>
+                          ` : ''}
+                      </div>
                       <div class="flex flex-col gap-1">
                           <p class="text-white text-xs font-medium line-clamp-2" title="${escapeHtml(visual.title || 'Similar')}">${escapeHtml(visual.title || 'Similar')}</p>
                           <p class="text-white/50 text-xs truncate">${escapeHtml(visual.source || '')}</p>

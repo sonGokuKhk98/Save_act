@@ -22,21 +22,107 @@ router = APIRouter(prefix="/api/products", tags=["products"])
 
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY", "")
 
+# Major e-commerce domains to filter for shopping links
+SHOPPING_DOMAINS = [
+    "amazon.com", "amazon.co.uk", "amazon.de", "amazon.fr", "amazon.ca", "amazon.in",
+    "ebay.com", "ebay.co.uk", "ebay.de", "ebay.fr", "ebay.ca", "ebay.in",
+    "walmart.com", "target.com", "bestbuy.com", "homedepot.com", "lowes.com",
+    "etsy.com", "aliexpress.com", "alibaba.com", "shopify.com",
+    "wayfair.com", "overstock.com", "newegg.com", "costco.com",
+    "macys.com", "nordstrom.com", "zappos.com", "kohls.com",
+    "sephora.com", "ulta.com", "nike.com", "adidas.com",
+    "flipkart.com", "myntra.com", "ajio.com", "snapdeal.com",
+    "shop", "store", "buy"  # Generic shopping keywords in domain
+]
+
+
+def _is_shopping_link(link: str) -> bool:
+    """Check if a link is from a shopping website."""
+    if not link:
+        return False
+    link_lower = link.lower()
+    return any(domain in link_lower for domain in SHOPPING_DOMAINS)
+
+
+def _extract_thumbnail_url(thumb_data):
+    """Extract thumbnail URL from various possible formats."""
+    if not thumb_data:
+        return None
+    
+    # If it's already a string URL, return it
+    if isinstance(thumb_data, str):
+        return thumb_data
+    
+    # If it's a dict, try various possible keys
+    if isinstance(thumb_data, dict):
+        # Try common keys in order of preference
+        for key in ['image', 'url', 'src', 'href']:
+            if key in thumb_data and isinstance(thumb_data[key], str):
+                return thumb_data[key]
+    
+    return None
+
+
+def _extract_price_info(item: Dict[str, Any]) -> tuple:
+    """Extract price and currency from various possible formats.
+    
+    Returns:
+        tuple: (price_string, currency_string) or (None, None)
+    """
+    price = item.get("price")
+    currency = item.get("currency")
+    
+    # Handle price as dict (e.g., {"value": "29.99", "currency": "USD"})
+    if isinstance(price, dict):
+        price_value = price.get("value") or price.get("amount") or price.get("price")
+        price_currency = price.get("currency") or currency
+        return (str(price_value) if price_value else None, 
+                str(price_currency) if price_currency else None)
+    
+    # Handle extracted_price field (common in SerpAPI)
+    if not price and "extracted_price" in item:
+        price = item["extracted_price"]
+    
+    # Convert price to string if it's a number
+    if isinstance(price, (int, float)):
+        price = str(price)
+    
+    # Only return string prices
+    if isinstance(price, str) and price.strip():
+        return (price.strip(), str(currency) if currency else None)
+    
+    return (None, None)
+
 
 def _normalize_visual_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
   normalized: List[Dict[str, Any]] = []
   for m in matches or []:
     if not isinstance(m, dict):
       continue
-    thumb = m.get("thumbnail") or {}
-    if isinstance(thumb, dict):
-      thumb = thumb.get("image")
+    
+    # Filter for shopping links only
+    link = m.get("link")
+    if not _is_shopping_link(link):
+      continue
+    
+    # Extract thumbnail URL properly
+    thumb = _extract_thumbnail_url(m.get("thumbnail"))
+    
+    # Skip if no valid thumbnail
+    if not thumb:
+      continue
+    
+    # Extract price and currency properly
+    price, currency = _extract_price_info(m)
+    
     normalized.append(
       {
         "title": m.get("title"),
-        "link": m.get("link"),
+        "link": link,
         "source": m.get("source"),
         "thumbnail": thumb,
+        "price": price,
+        "currency": currency,
       }
     )
   return normalized
@@ -47,16 +133,29 @@ def _normalize_product_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, 
   for p in matches or []:
     if not isinstance(p, dict):
       continue
-    thumb = p.get("thumbnail") or {}
-    if isinstance(thumb, dict):
-      thumb = thumb.get("image")
+    
+    # Filter for shopping links only
+    link = p.get("link")
+    if not _is_shopping_link(link):
+      continue
+    
+    # Extract thumbnail URL properly
+    thumb = _extract_thumbnail_url(p.get("thumbnail"))
+    
+    # Skip if no valid thumbnail
+    if not thumb:
+      continue
+    
+    # Extract price and currency properly
+    price, currency = _extract_price_info(p)
+    
     normalized.append(
       {
         "title": p.get("title"),
-        "link": p.get("link"),
+        "link": link,
         "source": p.get("source"),
-        "price": p.get("price"),
-        "currency": p.get("currency"),
+        "price": price,
+        "currency": currency,
         "thumbnail": thumb,
       }
     )
