@@ -55,42 +55,42 @@ def test_instagram_video(instagram_url: str):
             print(extraction.get_formatted_summary())
         else:
             # Handle specific model types
-            if extraction.category == "workout":
-                print(f" Workout Details:")
+        if extraction.category == "workout":
+            print(f" Workout Details:")
                 if hasattr(extraction, 'exercises') and extraction.exercises:
-                    print(f"  - Exercises: {len(extraction.exercises)}")
+            print(f"  - Exercises: {len(extraction.exercises)}")
                 if hasattr(extraction, 'estimated_duration_minutes') and extraction.estimated_duration_minutes:
-                    print(f"  - Duration: {extraction.estimated_duration_minutes} minutes")
+            print(f"  - Duration: {extraction.estimated_duration_minutes} minutes")
                 if hasattr(extraction, 'difficulty_level'):
-                    print(f"  - Difficulty: {extraction.difficulty_level}")
-            elif extraction.category == "recipe":
-                print(f"  Recipe Details:")
+            print(f"  - Difficulty: {extraction.difficulty_level}")
+        elif extraction.category == "recipe":
+            print(f"  Recipe Details:")
                 if hasattr(extraction, 'ingredients') and extraction.ingredients:
-                    print(f"  - Ingredients: {len(extraction.ingredients)}")
+            print(f"  - Ingredients: {len(extraction.ingredients)}")
                 if hasattr(extraction, 'steps') and extraction.steps:
-                    print(f"  - Steps: {len(extraction.steps)}")
-            elif extraction.category == "travel":
-                print(f" Travel Details:")
+            print(f"  - Steps: {len(extraction.steps)}")
+        elif extraction.category == "travel":
+            print(f" Travel Details:")
                 if hasattr(extraction, 'destination') and extraction.destination:
-                    print(f"  - Destination: {extraction.destination}")
+            print(f"  - Destination: {extraction.destination}")
                 if hasattr(extraction, 'activities') and extraction.activities:
-                    print(f"  - Activities: {len(extraction.activities)}")
-            elif extraction.category == "product":
-                print(f" Product Details:")
+            print(f"  - Activities: {len(extraction.activities)}")
+        elif extraction.category == "product":
+            print(f" Product Details:")
                 if hasattr(extraction, 'products') and extraction.products:
-                    print(f"  - Products: {len(extraction.products)}")
-            elif extraction.category == "educational":
-                print(f" Tutorial Details:")
+            print(f"  - Products: {len(extraction.products)}")
+        elif extraction.category == "educational":
+            print(f" Tutorial Details:")
                 if hasattr(extraction, 'topic') and extraction.topic:
-                    print(f"  - Topic: {extraction.topic}")
+            print(f"  - Topic: {extraction.topic}")
                 if hasattr(extraction, 'steps') and extraction.steps:
-                    print(f"  - Steps: {len(extraction.steps)}")
-            elif extraction.category == "music":
-                print(f" Music Details:")
+            print(f"  - Steps: {len(extraction.steps)}")
+        elif extraction.category == "music":
+            print(f" Music Details:")
                 if hasattr(extraction, 'song_title') and extraction.song_title:
-                    print(f"  - Song: {extraction.song_title}")
+                print(f"  - Song: {extraction.song_title}")
                 if hasattr(extraction, 'artist') and extraction.artist:
-                    print(f"  - Artist: {extraction.artist}")
+                print(f"  - Artist: {extraction.artist}")
         
         # Print full extraction data
         print(f" Full Extraction Data:")

@@ -39,6 +39,35 @@ class VideoSegmenter:
             print("Install FFmpeg: brew install ffmpeg (macOS) or apt-get install ffmpeg (Linux)")
             return False
     
+    def _get_video_duration_seconds(self, video_path: Path) -> Optional[float]:
+        """
+        Get the duration of the video in seconds using ffprobe.
+        Returns None if duration cannot be determined.
+        """
+        try:
+            cmd = [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                str(video_path),
+            ]
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            duration_str = result.stdout.strip()
+            if not duration_str:
+                return None
+            return float(duration_str)
+        except Exception:
+            return None
+    
     def extract_keyframes(
         self, 
         video_path: Path, 
@@ -55,7 +84,24 @@ class VideoSegmenter:
             Tuple of (list of keyframe paths, error_message)
         """
         if interval_seconds is None:
-            interval_seconds = Config.KEYFRAME_INTERVAL_SECONDS
+            # Dynamically choose keyframe density based on video length:
+            # - Short reels -> more keyframes (smaller interval)
+            # - Longer reels -> fewer keyframes (larger interval)
+            duration = self._get_video_duration_seconds(video_path)
+            if duration:
+                if duration <= 15:
+                    interval_seconds = 1
+                elif duration <= 30:
+                    interval_seconds = 2
+                elif duration <= 60:
+                    interval_seconds = 3
+                elif duration <= 120:
+                    interval_seconds = 4
+                else:
+                    interval_seconds = max(Config.KEYFRAME_INTERVAL_SECONDS, 5)
+            else:
+                # Fallback to config when duration is unknown
+                interval_seconds = Config.KEYFRAME_INTERVAL_SECONDS
         
         # Generate output pattern for keyframes
         keyframe_dir = get_temp_file_path(f"keyframes_{video_path.stem}")
@@ -68,7 +114,10 @@ class VideoSegmenter:
             cmd = [
                 "ffmpeg",
                 "-i", str(video_path),
-                "-vf", f"fps=1/{interval_seconds}",
+                # Extract fewer, smaller keyframes:
+                # - fps=1/interval: one frame every `interval_seconds`
+                # - scale=-2:480: downscale height to 480px, keep aspect ratio
+                "-vf", f"fps=1/{interval_seconds},scale=-2:480",
                 "-q:v", "2",  # High quality
                 output_pattern,
                 "-y"  # Overwrite output files

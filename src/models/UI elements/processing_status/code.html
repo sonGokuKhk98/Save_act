@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Processing Reel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#0d93f2",
+              "background-light": "#f5f7f8",
+              "background-dark": "#101b22",
+            },
+            fontFamily: {
+              "display": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex h-screen w-full flex-col">
+<!-- Top App Bar -->
+<div class="flex items-center p-4 pb-2 justify-between bg-background-light dark:bg-background-dark">
+<button class="text-slate-800 dark:text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Processing Reel</h2>
+<div class="size-10 shrink-0"></div> <!-- Spacer -->
+</div>
+<!-- Main Content -->
+<div class="flex flex-1 flex-col items-center justify-center p-6 text-center">
+<!-- Animated Progress Indicator -->
+<div class="relative flex h-52 w-52 items-center justify-center">
+<svg class="absolute inset-0 h-full w-full transform -rotate-90" viewbox="0 0 100 100">
+<circle class="stroke-current text-slate-200 dark:text-slate-800" cx="50" cy="50" fill="transparent" r="45" stroke-width="6"></circle>
+<circle id="status-circle" class="stroke-current text-primary transition-all duration-500 ease-in-out" cx="50" cy="50" fill="transparent" r="45" stroke-dasharray="282.74" stroke-dashoffset="282.74" stroke-linecap="round" stroke-width="6"></circle>
+</svg>
+<div class="flex flex-col items-center justify-center">
+<span id="status-percent" class="text-5xl font-bold text-slate-900 dark:text-white">0%</span>
+</div>
+</div>
+<!-- Dynamic Status Text -->
+<div class="mt-8 flex flex-col gap-2">
+<p id="status-text" class="text-slate-800 dark:text-slate-100 text-xl font-semibold leading-normal">Structuring key insights...</p>
+<p id="status-stage" class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Queued</p>
+</div>
+<div class="mt-12 w-full max-w-sm">
+<!-- Linear Progress Bar (from provided components, adapted) -->
+<div class="flex flex-col gap-3">
+<div class="flex gap-6 justify-between"><p id="status-linear-text" class="text-slate-800 dark:text-white text-base font-medium leading-normal">Analyzing content with Gemini AI...</p></div>
+<div class="rounded-full bg-slate-200 dark:bg-slate-700 h-2">
+<div id="status-linear-bar" class="h-2 rounded-full bg-primary" style="width: 0%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Actions -->
+<div class="w-full p-4 bg-background-light dark:bg-background-dark">
+<!-- Single Button -->
+<div class="flex px-4 py-3">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 px-5 flex-1 bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
+<span class="truncate">Cancel</span>
+</button>
+</div>
+</div>
+</div>
+
+<script>
+  let clientProgress = 0;
+  let serverProgress = 0;
+  let currentStage = 'queued';
+  let progressTickerStarted = false;
+
+  function getTaskId() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('task_id');
+  }
+
+  async function fetchStatus(taskId) {
+    const resp = await fetch(`/api/reels/status/${encodeURIComponent(taskId)}`);
+    if (!resp.ok) throw new Error('Failed to fetch status');
+    return resp.json();
+  }
+
+  async function fetchReel(reelId) {
+    const resp = await fetch(`/api/reels/${encodeURIComponent(reelId)}`);
+    if (!resp.ok) throw new Error('Failed to fetch reel');
+    return resp.json();
+  }
+
+  function updateProgressUI(progress, stage) {
+    const percentEl = document.getElementById('status-percent');
+    const circle = document.getElementById('status-circle');
+    const linearBar = document.getElementById('status-linear-bar');
+    const stageEl = document.getElementById('status-stage');
+    const linearText = document.getElementById('status-linear-text');
+
+    if (percentEl) percentEl.textContent = `${progress}%`;
+    const maxCircumference = 2 * Math.PI * 45; // r = 45
+    if (circle) {
+      const offset = maxCircumference * (1 - progress / 100);
+      circle.setAttribute('stroke-dashoffset', String(offset));
+    }
+    if (linearBar) linearBar.style.width = `${progress}%`;
+    if (stageEl) stageEl.textContent = `Stage: ${stage}`;
+    if (linearText) {
+      if (stage === 'downloading') linearText.textContent = 'Downloading video...';
+      else if (stage === 'segmenting') linearText.textContent = 'Extracting keyframes and audio...';
+      else if (stage === 'analyzing') linearText.textContent = 'Analyzing content with Gemini AI...';
+      else if (stage === 'storing') linearText.textContent = 'Saving extracted data...';
+      else if (stage === 'done') linearText.textContent = 'Processing complete.';
+      else if (stage === 'error') linearText.textContent = 'An error occurred.';
+      else linearText.textContent = 'Processing reel...';
+    }
+  }
+
+  function startProgressTicker() {
+    if (progressTickerStarted) return;
+    progressTickerStarted = true;
+
+    setInterval(() => {
+      // Don't advance past 95% unless the server says we're at 100
+      const hardCap = serverProgress === 100 ? 100 : 95;
+      const target = Math.min(serverProgress, hardCap);
+      if (clientProgress < target) {
+        clientProgress += 1;
+        updateProgressUI(clientProgress, currentStage);
+      }
+    }, 300);
+  }
+
+  async function poll(taskId) {
+    try {
+      const data = await fetchStatus(taskId);
+
+      const textEl = document.getElementById('status-text');
+      if (textEl) {
+        textEl.textContent =
+          data.status === 'completed'
+            ? 'Extraction complete!'
+            : 'Structuring key insights...';
+      }
+
+      // Update global stage/progress targets
+      currentStage = data.stage || currentStage;
+      if (typeof data.progress === 'number') {
+        serverProgress = data.progress;
+      }
+
+      // Ensure the visual progress is at least the server-reported value
+      if (clientProgress < serverProgress) {
+        clientProgress = serverProgress;
+      }
+
+      updateProgressUI(clientProgress, currentStage);
+
+      if (data.status === 'completed' && data.reel_id) {
+        // Always route to the generic view first. Users can choose
+        // specialized actions (like starting the workout timer) from
+        // the generic "Take Action" sheet.
+        window.location.href = `/generic-view?reel_id=${encodeURIComponent(
+          data.reel_id
+        )}`;
+        return;
+      }
+
+      if (data.status === 'failed') {
+        alert('Processing failed: ' + (data.error || 'Unknown error'));
+        return;
+      }
+
+      setTimeout(() => poll(taskId), 2000);
+    } catch (e) {
+      console.error(e);
+      setTimeout(() => poll(taskId), 5000);
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const taskId = getTaskId();
+    if (!taskId) {
+      console.warn('Missing task_id in query string');
+      return;
+    }
+    startProgressTicker();
+    poll(taskId);
+  });
+</script>
+
+</body></html>
