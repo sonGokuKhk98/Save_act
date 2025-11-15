@@ -2,7 +2,7 @@
 FastAPI router that exposes lightweight "AI agent" helpers on top of
 existing reel extractions.
 
-For now this focuses on product reels: given a reel_id, we send the
+For now this focuses on product reels: given a document_id, we send the
 structured extraction + raw data to Gemini and ask it to propose a
 short enhanced summary and suggested actions. The UI can surface this
 as an "Enhance with AI" experience.
@@ -303,18 +303,18 @@ def _call_gemini_for_plan(
     )
 
 
-@router.get("/product-plan/{reel_id}", response_model=ProductEnhancementPlan)
-async def product_enhancement_plan(reel_id: str) -> ProductEnhancementPlan:
+@router.get("/product-plan/{document_id}", response_model=ProductEnhancementPlan)
+async def product_enhancement_plan(document_id: str) -> ProductEnhancementPlan:
     """
     Backwards-compatible endpoint focused on product reels.
 
-    Prefer using `/api/agents/plan/{reel_id}` for new integrations, which
+    Prefer using `/api/agents/plan/{document_id}` for new integrations, which
     works for all categories. This endpoint simply checks that the reel
     is a product and then delegates to the generic planner.
     """
-    reel: Optional[Dict[str, Any]] = REELS.get(reel_id)
+    reel: Optional[Dict[str, Any]] = REELS.get(document_id)
     if not reel:
-        raise HTTPException(status_code=404, detail="Unknown reel_id")
+        raise HTTPException(status_code=404, detail="Unknown document_id")
 
     extraction: Dict[str, Any] = reel.get("extraction") or {}
     category = (extraction.get("category") or "").lower()
@@ -329,18 +329,18 @@ async def product_enhancement_plan(reel_id: str) -> ProductEnhancementPlan:
     return _call_gemini_for_plan(extraction, raw_data)
 
 
-@router.get("/plan/{reel_id}", response_model=ProductEnhancementPlan)
-async def generic_enhancement_plan(reel_id: str) -> ProductEnhancementPlan:
+@router.get("/plan/{document_id}", response_model=ProductEnhancementPlan)
+async def generic_enhancement_plan(document_id: str) -> ProductEnhancementPlan:
     """
     Category-aware enhancement plan for ANY reel.
 
-    Reads the extraction + raw_data for the given reel_id, uses the
+    Reads the extraction + raw_data for the given document_id, uses the
     reel's category to guide the system prompt, and returns a concise
     heading, subtitle, highlights and suggested actions.
     """
-    reel: Optional[Dict[str, Any]] = REELS.get(reel_id)
+    reel: Optional[Dict[str, Any]] = REELS.get(document_id)
     if not reel:
-        raise HTTPException(status_code=404, detail="Unknown reel_id")
+        raise HTTPException(status_code=404, detail="Unknown document_id")
 
     extraction: Dict[str, Any] = reel.get("extraction") or {}
     raw_data = extraction.get("raw_data") or extraction
@@ -412,8 +412,8 @@ def _call_gemini_for_reconstruct(
     )
 
 
-@router.get("/reconstruct/{reel_id}", response_model=ReconstructionPlan)
-async def reconstruct_reel(reel_id: str) -> ReconstructionPlan:
+@router.get("/reconstruct/{document_id}", response_model=ReconstructionPlan)
+async def reconstruct_reel(document_id: str) -> ReconstructionPlan:
     """
     Ask Gemini to produce a cleaned/restructured raw_data for this reel, plus
     optional improved heading/subtitle.
@@ -422,9 +422,9 @@ async def reconstruct_reel(reel_id: str) -> ReconstructionPlan:
     re-render all sections (ingredients/items, details, steps, additional
     context) based on the new structure.
     """
-    reel: Optional[Dict[str, Any]] = REELS.get(reel_id)
+    reel: Optional[Dict[str, Any]] = REELS.get(document_id)
     if not reel:
-        raise HTTPException(status_code=404, detail="Unknown reel_id")
+        raise HTTPException(status_code=404, detail="Unknown document_id")
 
     extraction: Dict[str, Any] = reel.get("extraction") or {}
     raw_data = extraction.get("raw_data") or extraction

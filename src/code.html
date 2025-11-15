@@ -296,6 +296,7 @@ AI-generated view based on this keyframe. For products, you can also use Google 
       console.warn('No reel_id or document_id in query string; ensure window.__EXTRACTION__ is set manually.');
     }
   }
+
 </script>
 
 <script>
@@ -483,8 +484,8 @@ AI-generated view based on this keyframe. For products, you can also use Google 
     }
   }
 
-    // Create a rich keyframes gallery for Supermemory images
-    function createSupermemoryKeyframesSection(keyframes) {
+  // Create a rich keyframes gallery for Supermemory images
+  function createSupermemoryKeyframesSection(keyframes) {
     const wrapper = document.createElement('div');
     wrapper.className = 'flex flex-col gap-3 border border-white/5 rounded-lg p-3';
     
@@ -547,43 +548,199 @@ AI-generated view based on this keyframe. For products, you can also use Google 
     return wrapper;
   }
   
-  // Modal for viewing keyframe details
   function openKeyframeModal(keyframe) {
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+    
     const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4';
-    modal.onclick = () => modal.remove();
+    modal.className = 'fixed inset-0 bg-black/90 z-50 overflow-y-auto';
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        document.body.style.overflow = '';
+        modal.remove();
+      }
+    };
+    
+    // Create a flex container for centering
+    const flexContainer = document.createElement('div');
+    flexContainer.className = 'min-h-full flex items-center justify-center p-4';
+    flexContainer.onclick = (e) => {
+      if (e.target === flexContainer) {
+        document.body.style.overflow = '';
+        modal.remove();
+      }
+    };
     
     const imageUrl = keyframe.url || '';
     const title = keyframe.title || 'Keyframe';
     const summary = keyframe.summary || '';
+    const timestamp = Date.now();
     
-    modal.innerHTML = `
-      <div class="relative max-w-4xl max-h-full flex flex-col" onclick="event.stopPropagation()">
-        <button class="absolute -top-10 right-0 text-white hover:text-red-500 transition-colors" onclick="this.closest('.fixed').remove()">
+    flexContainer.innerHTML = `
+      <div class="relative w-full max-w-4xl flex flex-col" onclick="event.stopPropagation()">
+        <button class="absolute -top-10 right-0 text-white hover:text-red-500 transition-colors z-10" onclick="document.body.style.overflow=''; this.closest('.fixed').remove()">
           <span class="material-symbols-outlined text-3xl">close</span>
         </button>
         <img src="${escapeHtml(imageUrl)}" 
              alt="${escapeHtml(title)}" 
-             class="max-w-full max-h-[70vh] object-contain rounded-lg"
+             class="w-full max-h-[50vh] object-contain rounded-lg bg-black"
         />
-        <div class="bg-[#182934] rounded-lg p-4 mt-4 max-w-4xl">
+        <div class="bg-[#182934] rounded-lg p-4 mt-4">
           <p class="text-white font-bold mb-2">${escapeHtml(title)}</p>
           ${summary ? `<p class="text-white/70 text-sm">${escapeHtml(summary)}</p>` : ''}
         </div>
-        <div class="flex gap-2 justify-center mt-4">
+        <div class="flex gap-2 justify-center mt-4 flex-wrap">
           <a href="${escapeHtml(imageUrl)}" 
              target="_blank" 
              class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2">
             <span class="material-symbols-outlined text-sm">open_in_new</span>
-            Open in New Tab
+            Open Image
           </a>
+          <button id="google-lens-btn-${timestamp}" 
+             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">search</span>
+            Find Similar (Google Lens)
+          </button>
         </div>
+        <div id="lens-results-${timestamp}" class="mt-4 hidden w-full"></div>
       </div>
     `;
     
+    modal.appendChild(flexContainer);
     document.body.appendChild(modal);
-  }
+    
+    // Add event listener for Google Lens search
+    const googleLensBtn = document.getElementById(`google-lens-btn-${timestamp}`);
+    const resultsDiv = document.getElementById(`lens-results-${timestamp}`);
+    
+    if (googleLensBtn && resultsDiv) {
+        googleLensBtn.addEventListener('click', async () => {
+            googleLensBtn.disabled = true;
+            googleLensBtn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">refresh</span> Searching...';
+            
+            try {
+                const resp = await fetch('/api/products/lens/search-by-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_url: imageUrl })
+                });
+                
+                if (!resp.ok) {
+                    const error = await resp.json().catch(() => ({}));
+                    throw new Error(error.detail || 'Failed to search products');
+                }
+                
+                const data = await resp.json();
+                displayLensResults(resultsDiv, data);
+                
+            } catch (error) {
+                resultsDiv.classList.remove('hidden');
+                resultsDiv.innerHTML = `
+                    <div class="bg-[#182934] rounded-lg p-4">
+                        <p class="text-red-500 text-center">${escapeHtml(error.message)}</p>
+                    </div>
+                `;
+            } finally {
+                googleLensBtn.disabled = false;
+                googleLensBtn.innerHTML = '<span class="material-symbols-outlined text-sm">search</span> Find Similar (Google Lens)';
+            }
+        });
+    }
+}
 
+  // Display Google Lens results
+  function displayLensResults(container, data) {
+      container.classList.remove('hidden');
+      
+      const products = data.product_matches || [];
+      const visuals = data.visual_matches || [];
+      const googleLensUrl = data.google_lens_url || '';
+      
+      if (products.length === 0 && visuals.length === 0) {
+          container.innerHTML = `
+              <div class="bg-[#182934] rounded-lg p-4 w-full">
+                  <p class="text-white/70 text-center">No similar products found</p>
+                  ${googleLensUrl ? `
+                      <div class="flex justify-center mt-3">
+                        <a href="${escapeHtml(googleLensUrl)}" 
+                          target="_blank"
+                          class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors">
+                            <span class="material-symbols-outlined text-sm">open_in_new</span>
+                            View in Google Lens
+                        </a>
+                      </div>
+                  ` : ''}
+              </div>
+          `;
+          return;
+      }
+      
+      let html = '<div class="bg-[#182934] rounded-lg p-4 w-full">';
+      html += '<div class="flex items-center justify-between mb-3 flex-wrap gap-2">';
+      html += '<h3 class="text-white font-bold text-base">Similar Products & Images</h3>';
+      if (googleLensUrl) {
+          html += `
+              <a href="${escapeHtml(googleLensUrl)}" 
+                target="_blank"
+                class="text-primary hover:text-blue-400 text-xs flex items-center gap-1 whitespace-nowrap">
+                  <span class="material-symbols-outlined text-sm">open_in_new</span>
+                  View All
+              </a>
+          `;
+      }
+      html += '</div>';
+      
+      // Show product matches first (they have prices)
+      if (products.length > 0) {
+          html += '<p class="text-white/70 text-sm mb-2">Products for Sale:</p>';
+          html += '<div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">';
+          products.slice(0, 6).forEach(product => {
+              html += `
+                  <a href="${escapeHtml(product.link || '#')}" 
+                    target="_blank"
+                    class="flex flex-col gap-2 bg-[#1a2730] rounded-lg p-2 hover:bg-[#1e2f3a] transition-colors">
+                      <img src="${escapeHtml(product.thumbnail || '')}" 
+                          class="w-full h-24 object-cover rounded"
+                          onerror="this.src='https://via.placeholder.com/150?text=No+Image'"
+                          loading="lazy"/>
+                      <div class="flex flex-col gap-1">
+                          <p class="text-white text-xs font-medium line-clamp-2" title="${escapeHtml(product.title || 'Product')}">${escapeHtml(product.title || 'Product')}</p>
+                          ${product.price ? `<p class="text-green-400 text-xs font-bold">${escapeHtml(product.price)}</p>` : ''}
+                          <p class="text-white/50 text-xs truncate">${escapeHtml(product.source || '')}</p>
+                      </div>
+                  </a>
+              `;
+          });
+          html += '</div>';
+      }
+      
+      // Show visual matches
+      if (visuals.length > 0) {
+          html += '<p class="text-white/70 text-sm mb-2">Similar Images:</p>';
+          html += '<div class="grid grid-cols-2 md:grid-cols-3 gap-3">';
+          visuals.slice(0, 6).forEach(visual => {
+              html += `
+                  <a href="${escapeHtml(visual.link || '#')}" 
+                    target="_blank"
+                    class="flex flex-col gap-2 bg-[#1a2730] rounded-lg p-2 hover:bg-[#1e2f3a] transition-colors">
+                      <img src="${escapeHtml(visual.thumbnail || '')}" 
+                          class="w-full h-24 object-cover rounded"
+                          onerror="this.src='https://via.placeholder.com/150?text=No+Image'"
+                          loading="lazy"/>
+                      <div class="flex flex-col gap-1">
+                          <p class="text-white text-xs font-medium line-clamp-2" title="${escapeHtml(visual.title || 'Similar')}">${escapeHtml(visual.title || 'Similar')}</p>
+                          <p class="text-white/50 text-xs truncate">${escapeHtml(visual.source || '')}</p>
+                      </div>
+                  </a>
+              `;
+          });
+          html += '</div>';
+      }
+      
+      html += '</div>';
+      container.innerHTML = html;
+  }
+  
   function hydrateGenericExtraction() {
     const extraction = getExtraction();
     if (!extraction) {
@@ -891,9 +1048,9 @@ AI-generated view based on this keyframe. For products, you can also use Google 
           const originalLabel = originalText ? originalText.textContent : '';
           if (originalText) originalText.textContent = 'Enhancing...';
 
-          const reelId = window.__REEL_ID__;
+          const documentId = window.__REEL_ID__;
           const resp = await fetch(
-            `/api/agents/plan/${encodeURIComponent(reelId)}`
+            `/api/agents/plan/${encodeURIComponent(documentId)}`
           );
           if (!resp.ok) {
             const err = await resp.text();
@@ -925,9 +1082,9 @@ AI-generated view based on this keyframe. For products, you can also use Google 
           const originalLabel = originalText ? originalText.textContent : '';
           if (originalText) originalText.textContent = 'Reconstructing...';
 
-          const reelId = window.__REEL_ID__;
+          const documentId = window.__REEL_ID__;
           const resp = await fetch(
-            `/api/agents/reconstruct/${encodeURIComponent(reelId)}`
+            `/api/agents/reconstruct/${encodeURIComponent(documentId)}`
           );
           if (!resp.ok) {
             const err = await resp.text();
@@ -1380,18 +1537,25 @@ AI-generated view based on this keyframe. For products, you can also use Google 
         });
 
         if (!entries.length) {
-        additionalSection.classList.add('hidden');
-      } else {
-        additionalContainer.innerHTML = '';
+          // If no entries but we have keyframes, show them
+          if (supermemoryKeyframes.length > 0) {
+            additionalSection.classList.remove('hidden');
+            additionalContainer.innerHTML = '';
+            additionalContainer.appendChild(createSupermemoryKeyframesSection(supermemoryKeyframes));
+          } else {
+            additionalSection.classList.add('hidden');
+          }
+        } else {
+          additionalContainer.innerHTML = '';
 
           entries.forEach(([key, value]) => {
-          const wrapper = document.createElement('div');
+            const wrapper = document.createElement('div');
             wrapper.className = 'flex flex-col gap-2 border border-white/5 rounded-lg p-3';
 
-          const labelP = document.createElement('p');
-          labelP.className = 'text-[#90b2cb] text-sm font-normal';
-          const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-          labelP.textContent = label;
+            const labelP = document.createElement('p');
+            labelP.className = 'text-[#90b2cb] text-sm font-normal';
+            const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+            labelP.textContent = label;
             wrapper.appendChild(labelP);
 
             const normalizedKey = label.toLowerCase();
@@ -1537,11 +1701,13 @@ AI-generated view based on this keyframe. For products, you can also use Google 
               wrapper.appendChild(valueP);
             }
 
+            additionalContainer.appendChild(wrapper);
+          });
+
           // Add keyframes section at the end if available
           if (supermemoryKeyframes.length > 0) {
             additionalContainer.appendChild(createSupermemoryKeyframesSection(supermemoryKeyframes));
           }
-        });
         }
       }
     }
@@ -1669,9 +1835,9 @@ AI-generated view based on this keyframe. For products, you can also use Google 
               'Ask Gemini to summarize this sale and suggest the most useful next steps.',
             handler: async () => {
               try {
-                const reelId = window.__REEL_ID__;
+                const documentId = window.__REEL_ID__;
                 const resp = await fetch(
-                  `/api/agents/plan/${encodeURIComponent(reelId)}`
+                  `/api/agents/plan/${encodeURIComponent(documentId)}`
                 );
                 if (!resp.ok) {
                   const err = await resp.text();
@@ -1697,9 +1863,9 @@ AI-generated view based on this keyframe. For products, you can also use Google 
             description: 'Use Google Lens via SerpApi to search the web for this product.',
             handler: async () => {
               try {
-                const reelId = window.__REEL_ID__;
+                const documentId = window.__REEL_ID__;
                 const resp = await fetch(
-                  `/api/products/lens/${encodeURIComponent(reelId)}`
+                  `/api/products/lens/${encodeURIComponent(documentId)}`
                 );
                 if (!resp.ok) {
                   const err = await resp.text();
@@ -1752,9 +1918,9 @@ AI-generated view based on this keyframe. For products, you can also use Google 
             'Use AI to clean up the title, summary, and key highlights for this reel.',
           handler: async () => {
             try {
-              const reelId = window.__REEL_ID__;
+              const documentId = window.__REEL_ID__;
               const resp = await fetch(
-                `/api/agents/plan/${encodeURIComponent(reelId)}`
+                `/api/agents/plan/${encodeURIComponent(documentId)}`
               );
               if (!resp.ok) {
                 const err = await resp.text();
@@ -1874,6 +2040,44 @@ AI-generated view based on this keyframe. For products, you can also use Google 
       fallbackEl.textContent = `Auto-formatted generic view. Original type: ${orig}. Reason: ${reason}.`;
     }
   }
+
+  // Header collapse on scroll
+  let lastScrollTop = 0;
+  let isHeaderCollapsed = false;
+  const header = document.querySelector('.sticky.top-0.z-10');
+  
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Only trigger after scrolling past 100px
+    if (scrollTop < 100) {
+      // Near top - always show full header
+      if (isHeaderCollapsed) {
+        header.style.transform = 'translateY(0)';
+        header.style.transition = 'transform 0.3s ease-in-out';
+        isHeaderCollapsed = false;
+      }
+      lastScrollTop = scrollTop;
+      return;
+    }
+    
+    // Scrolling down
+    if (scrollTop > lastScrollTop && !isHeaderCollapsed) {
+      // Collapse: hide most of the header but keep a small bar visible
+      header.style.transform = 'translateY(-80%)';
+      header.style.transition = 'transform 0.3s ease-in-out';
+      isHeaderCollapsed = true;
+    }
+    // Scrolling up
+    else if (scrollTop < lastScrollTop && isHeaderCollapsed) {
+      // Expand: show full header
+      header.style.transform = 'translateY(0)';
+      header.style.transition = 'transform 0.3s ease-in-out';
+      isHeaderCollapsed = false;
+    }
+    
+    lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+  }, { passive: true });
 
   // Ensure we first load the reel, then hydrate the UI once data is available.
   window.addEventListener('DOMContentLoaded', async () => {

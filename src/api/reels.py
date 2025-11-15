@@ -6,20 +6,21 @@ This wraps the existing `ReelExtractor` pipeline so the UI can interact
 with it over HTTP instead of via the CLI.
 """
 
+import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
+import requests
+from dotenv import load_dotenv
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
 from main import ReelExtractor
 from src.models import GenericExtraction
 from src.utils.config import Config
-import os
-import requests
-from dotenv import load_dotenv
 
 router = APIRouter(prefix="/api/reels", tags=["reels"])
 
@@ -383,6 +384,49 @@ async def get_document_details(document_id: str, custom_id: Optional[str] = None
     print("main_doc:",main_doc)
     print("keyframe_images:",keyframe_images)
     print("custom_id:",custom_id)
+    
+    # Cache the document in REELS dictionary so agent endpoints can access it
+    # Parse content JSON to extract structured data
+    content_data = {}
+    try:
+        content_str = main_doc.get("content", "{}")
+        if content_str:
+            content_data = json.loads(content_str)
+    except (json.JSONDecodeError, Exception) as e:
+        print(f"Warning: Failed to parse document content: {e}")
+    
+    # Build extraction object similar to regular reel format
+    metadata = main_doc.get("metadata", {})
+    extraction = {
+        "title": main_doc.get("title") or metadata.get("title") or metadata.get("topic") or "Untitled",
+        "description": main_doc.get("summary", ""),
+        "category": metadata.get("category") or content_data.get("category") or "generic",
+        "confidence_score": metadata.get("confidence_score") or content_data.get("confidence_score") or 0,
+        "source_url": metadata.get("source_url", ""),
+        "raw_data": {
+            **content_data,
+            "_supermemory_id": document_id,
+            "_custom_id": custom_id,
+            "_keyframes": keyframe_images
+        }
+    }
+    
+    # Store in REELS dictionary with document_id as key
+    REELS[document_id] = {
+        "reel_id": document_id,  # For backwards compatibility
+        "document_id": document_id,
+        "category": extraction["category"],
+        "is_generic": True,
+        "model_name": "GenericExtraction",
+        "extraction": extraction,
+        "formatted_summary": None,
+        "created_at": datetime.utcnow().isoformat(),
+        "source_url": extraction["source_url"],
+        "thumbnail_url": keyframe_images[0]["url"] if keyframe_images else metadata.get("thumbnail_url"),
+        "errors": [],
+        "_from_supermemory": True
+    }
+    
     return DocumentDetailsResponse(
         document=main_doc,
         keyframes=keyframe_images,
