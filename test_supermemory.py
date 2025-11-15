@@ -48,7 +48,22 @@ import requests
 
 url = "https://api.supermemory.ai/v3/search"
 
-payload = { "q": "give me routine for skin care for melasma?" ,"chunkThreshold":0.6}
+payload = {
+    "q": "images",
+    "chunkThreshold": 0.5,
+    "includeFullDocs":True,
+    "filters": {
+        "AND": [
+            {
+                "key": "customId",  # Note: In your code it's stored as "customId"
+                "value": "extraction_7b488f913da5",  # Replace with your actual customId
+                "negate": False
+            }
+        ]
+    },
+
+}
+
 headers = {
     "Authorization": "Bearer sm_8PFFHrpK7x9oKvNapkispJ_AjAIQpXivxuGJOsEiTCIDVegSpzdlbVbWwLOdLoRidQskOPsXayOoXsEEsObNCRy",
     "Content-Type": "application/json"
@@ -57,5 +72,4 @@ headers = {
 response = requests.post(url, json=payload, headers=headers)
 
 print(response.json())
-
 

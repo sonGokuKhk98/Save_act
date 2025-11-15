@@ -100,13 +100,13 @@ class ReelExtractor:
             if segmentation.get("transcript") and segmentation["transcript"].get("text"):
                 transcript_text = segmentation["transcript"]["text"]
             
-            extraction, error = self.analyzer.analyze_video(
+            extraction, error,keyframes = self.analyzer.analyze_video(
                 video_path,
                 keyframes=segmentation["keyframes"] if extract_keyframes else None,
                 transcript=transcript_text,
                 preferred_category=preferred_category
             )
-            
+            extraction.keyframes = keyframes
             if error:
                 result["errors"].append(f"Analysis error: {error}")
                 return result
