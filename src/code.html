@@ -213,45 +213,90 @@ AI-generated view based on this keyframe. For products, you can also use Google 
 </div>
 
 <script>
-  // Loader that fetches the reel by reel_id and populates window.__EXTRACTION__
-  // so the hydrateGenericExtraction() logic can render it.
+  // Loader that fetches either by reel_id (old flow) or document_id (new Supermemory flow)
   async function loadReelForGenericView() {
     const params = new URLSearchParams(window.location.search);
     const reelId = params.get('reel_id');
-    if (!reelId) {
-      console.warn('No reel_id in query string; ensure window.__EXTRACTION__ is set manually.');
-      return;
+    const documentId = params.get('document_id');
+    
+    // New flow: document_id from Supermemory search
+    if (documentId) {
+      try {
+        const resp = await fetch(`/api/reels/document/${encodeURIComponent(documentId)}`);
+        if (!resp.ok) throw new Error('Failed to fetch document');
+        const data = await resp.json();
+        
+        // Parse the Supermemory document structure
+        const docData = data.document;
+        const keyframes = data.keyframes || [];
+        const customId = data.custom_id;
+        
+        // Parse content JSON
+        let contentData = {};
+        try {
+          contentData = JSON.parse(docData.content || '{}');
+        } catch (e) {
+          console.error('Failed to parse content:', e);
+        }
+        
+        // Transform Supermemory data into the extraction format expected by hydrateGenericExtraction
+        const metadata = docData.metadata || {};
+        const extraction = {
+          title: docData.title || metadata.title || metadata.topic || 'Untitled',
+          description: docData.summary || '',
+          category: metadata.category || contentData.category || 'product',
+          confidence_score: metadata.confidence_score || contentData.confidence_score || 0,
+          source_url: metadata.source_url || '',
+          raw_data: {
+            ...contentData,
+            _supermemory_id: documentId,
+            _custom_id: customId,
+            _keyframes: keyframes
+          }
+        };
+        
+        // Set global variables
+        window.__REEL_ID__ = documentId;
+        window.__THUMBNAIL_URL__ = keyframes.length > 0 ? keyframes[0].url : null;
+        window.__EXTRACTION__ = {
+          model_name: 'GenericExtraction',
+          extraction
+        };
+        
+        return;
+      } catch (e) {
+        console.error('Error loading document from Supermemory:', e);
+      }
     }
+    
+    // Old flow: reel_id from existing reel extraction
+    if (reelId) {
+      try {
+        const resp = await fetch(`/api/reels/${encodeURIComponent(reelId)}`);
+        if (!resp.ok) throw new Error('Failed to fetch reel');
+        const reel = await resp.json();
 
-    try {
-      const resp = await fetch(`/api/reels/${encodeURIComponent(reelId)}`);
-      if (!resp.ok) throw new Error('Failed to fetch reel');
-      const reel = await resp.json();
+        const extraction = {
+          ...(reel.extraction || {}),
+          source_url: (reel.extraction && reel.extraction.source_url) || reel.source_url || null,
+        };
 
-      // Ensure the extraction object always has a usable source_url for
-      // "watch online" actions by preferring the model field and falling
-      // back to the top-level reel.source_url from the backend.
-      const extraction = {
-        ...(reel.extraction || {}),
-        source_url: (reel.extraction && reel.extraction.source_url) || reel.source_url || null,
-      };
-
-      // Expose the reel id globally so actions can navigate to
-      // more specific views if desired (e.g., workout timer).
-      window.__REEL_ID__ = reelId;
-      // Expose thumbnail URL (first keyframe) so product views can show
-      // a visual context image or attach it to product cards.
-      window.__THUMBNAIL_URL__ = reel.thumbnail_url || null;
-
-    window.__EXTRACTION__ = {
-        model_name: reel.model_name,
-        extraction,
-      };
-    } catch (e) {
-      console.error('Error loading reel for generic view:', e);
+        window.__REEL_ID__ = reelId;
+        window.__THUMBNAIL_URL__ = reel.thumbnail_url || null;
+        window.__EXTRACTION__ = {
+          model_name: reel.model_name,
+          extraction,
+        };
+      } catch (e) {
+        console.error('Error loading reel for generic view:', e);
+      }
+    }
+    
+    if (!reelId && !documentId) {
+      console.warn('No reel_id or document_id in query string; ensure window.__EXTRACTION__ is set manually.');
     }
   }
-  </script>
+</script>
 
 <script>
 
@@ -436,6 +481,107 @@ AI-generated view based on this keyframe. For products, you can also use Google 
       // Subtle flash to show something changed.
       flashElement(additionalSection);
     }
+  }
+
+    // Create a rich keyframes gallery for Supermemory images
+    function createSupermemoryKeyframesSection(keyframes) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex flex-col gap-3 border border-white/5 rounded-lg p-3';
+    
+    const labelP = document.createElement('p');
+    labelP.className = 'text-[#90b2cb] text-sm font-normal';
+    labelP.textContent = `Keyframes (${keyframes.length})`;
+    wrapper.appendChild(labelP);
+    
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-2 gap-3';
+    
+    keyframes.forEach((keyframe, index) => {
+      const imageUrl = keyframe.url || '';
+      const title = keyframe.title || `Frame ${keyframe.frame_number || index + 1}`;
+      const frameNumber = keyframe.frame_number || keyframe.metadata?.frame_index || index;
+      
+      const card = document.createElement('div');
+      card.className = 'flex flex-col gap-2 bg-[#1a2730] rounded-lg p-2 hover:bg-[#1e2f3a] transition-colors cursor-pointer';
+      
+      const imgWrapper = document.createElement('div');
+      imgWrapper.className = 'relative group';
+      
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      img.alt = title;
+      img.className = 'w-full h-32 object-cover rounded-lg';
+      img.onerror = () => {
+        img.src = 'https://via.placeholder.com/200x128?text=Image+Not+Found';
+      };
+      
+      const overlay = document.createElement('div');
+      overlay.className = 'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center';
+      overlay.innerHTML = '<span class="material-symbols-outlined text-white text-3xl">zoom_in</span>';
+      
+      imgWrapper.appendChild(img);
+      imgWrapper.appendChild(overlay);
+      
+      const titleP = document.createElement('p');
+      titleP.className = 'text-white text-xs font-medium truncate';
+      titleP.textContent = title;
+      titleP.title = title;
+      
+      const frameP = document.createElement('p');
+      frameP.className = 'text-white/40 text-xs';
+      frameP.textContent = `Frame #${frameNumber}`;
+      
+      card.appendChild(imgWrapper);
+      card.appendChild(titleP);
+      card.appendChild(frameP);
+      
+      // Click to open modal
+      card.addEventListener('click', () => {
+        openKeyframeModal(keyframe);
+      });
+      
+      grid.appendChild(card);
+    });
+    
+    wrapper.appendChild(grid);
+    return wrapper;
+  }
+  
+  // Modal for viewing keyframe details
+  function openKeyframeModal(keyframe) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4';
+    modal.onclick = () => modal.remove();
+    
+    const imageUrl = keyframe.url || '';
+    const title = keyframe.title || 'Keyframe';
+    const summary = keyframe.summary || '';
+    
+    modal.innerHTML = `
+      <div class="relative max-w-4xl max-h-full flex flex-col" onclick="event.stopPropagation()">
+        <button class="absolute -top-10 right-0 text-white hover:text-red-500 transition-colors" onclick="this.closest('.fixed').remove()">
+          <span class="material-symbols-outlined text-3xl">close</span>
+        </button>
+        <img src="${escapeHtml(imageUrl)}" 
+             alt="${escapeHtml(title)}" 
+             class="max-w-full max-h-[70vh] object-contain rounded-lg"
+        />
+        <div class="bg-[#182934] rounded-lg p-4 mt-4 max-w-4xl">
+          <p class="text-white font-bold mb-2">${escapeHtml(title)}</p>
+          ${summary ? `<p class="text-white/70 text-sm">${escapeHtml(summary)}</p>` : ''}
+        </div>
+        <div class="flex gap-2 justify-center mt-4">
+          <a href="${escapeHtml(imageUrl)}" 
+             target="_blank" 
+             class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">open_in_new</span>
+            Open in New Tab
+          </a>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
   }
 
   function hydrateGenericExtraction() {
@@ -1215,8 +1361,16 @@ AI-generated view based on this keyframe. For products, you can also use Google 
       : null;
 
     if (additionalSection && additionalContainer) {
+      const supermemoryKeyframes = raw._keyframes || [];
       if (!additional || Object.keys(additional).length === 0) {
-        additionalSection.classList.add('hidden');
+        // If no additional context but we have keyframes, show them
+        if (supermemoryKeyframes.length > 0) {
+          additionalSection.classList.remove('hidden');
+          additionalContainer.innerHTML = '';
+          additionalContainer.appendChild(createSupermemoryKeyframesSection(supermemoryKeyframes));
+        } else {
+          additionalSection.classList.add('hidden');
+        }
       } else {
         const entries = Object.entries(additional).filter(([key, value]) => {
           if (value === null || value === undefined) return false;
@@ -1383,7 +1537,10 @@ AI-generated view based on this keyframe. For products, you can also use Google 
               wrapper.appendChild(valueP);
             }
 
-          additionalContainer.appendChild(wrapper);
+          // Add keyframes section at the end if available
+          if (supermemoryKeyframes.length > 0) {
+            additionalContainer.appendChild(createSupermemoryKeyframesSection(supermemoryKeyframes));
+          }
         });
         }
       }

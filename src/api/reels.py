@@ -17,7 +17,9 @@ from pydantic import BaseModel
 from main import ReelExtractor
 from src.models import GenericExtraction
 from src.utils.config import Config
-
+import os
+import requests
+from dotenv import load_dotenv
 
 router = APIRouter(prefix="/api/reels", tags=["reels"])
 
@@ -53,6 +55,29 @@ class StatusResponse(BaseModel):
     reel_id: Optional[str] = None
     error: Optional[str] = None
 
+class SearchRequest(BaseModel):
+    """Request body for searching reels."""
+    query: str
+    limit: int = 10
+
+class SearchResult(BaseModel):
+    """Individual search result."""
+    title: str
+    thumbnail_url: Optional[str] = None
+    reel_id: Optional[str] = None
+    document_id: Optional[str] = None  # Explicit document ID field
+    score: float
+
+class SearchResponse(BaseModel):
+    """Response containing search results."""
+    results: list[SearchResult]
+    total: int
+
+class DocumentDetailsResponse(BaseModel):
+    """Response containing document details with keyframes."""
+    document: Dict[str, Any]
+    keyframes: list[Dict[str, Any]]
+    custom_id: Optional[str] = None
 
 def _update_task(task_id: str, **fields: Any) -> None:
     """Helper to update a task record if it exists."""
@@ -169,4 +194,198 @@ async def get_reel(reel_id: str):
         raise HTTPException(status_code=404, detail="Unknown reel_id")
     return reel
 
+@router.post("/search", response_model=SearchResponse)
+async def search_reels(payload: SearchRequest):
+    """
+    Search for reels using Supermemory API based on user query.
+    
+    Returns a list of matching reels with thumbnails and metadata.
+    Filters for text-type results and removes duplicates.
+    """
+    load_dotenv()
+    api_key = os.environ.get("SUPERMEMORY_API_KEY")
+    
+    if not api_key:
+        raise HTTPException(status_code=500, detail="SUPERMEMORY_API_KEY not configured")
+    
+    url = "https://api.supermemory.ai/v3/search"
+    
+    search_payload = {
+        "q": payload.query,
+        "chunkThreshold": 0.5,
+        "includeFullDocs": True,
+        "limit": payload.limit,
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.post(url, json=search_payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Extract unique results (filter text type and remove duplicates)
+        seen_ids = set()
+        results = []
+        
+        for item in data.get("results", []):
+            item_type = item.get("type")
+            doc_id = item.get("documentId")
+            
+            # Filter only text type results
+            if item_type != "text":
+                continue
+            
+            # Skip duplicates
+            if not doc_id or doc_id in seen_ids:
+                continue
+            seen_ids.add(doc_id)
+            
+            # Extract metadata
+            metadata = item.get("metadata", {})
+            source_url = metadata.get("source_url") or "No source URL available"
+            title = item.get("title") or metadata.get("topic") or "Untitled"
+            thumbnail_url = metadata.get("thumbnail_url") or metadata.get("image_url")
+            custom_id = metadata.get("customId")
+            
+            # Create search result
+            result = SearchResult(
+                title=title,
+                thumbnail_url=thumbnail_url,
+                reel_id=doc_id,
+                document_id=doc_id,
+                score=item.get("score", 0.0)
+            )
+            results.append(result)
+            
+            # Stop if we've reached the limit
+            if len(results) >= payload.limit:
+                break
+        
+        return SearchResponse(
+            results=results,
+            total=len(results)
+        )
+        
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
+@router.get("/document/{document_id}")
+async def get_document_details(document_id: str, custom_id: Optional[str] = None):
+    """
+    Fetch document details by document ID and optionally retrieve associated keyframes.
+    
+    This is a two-step process:
+    1. Fetch main document details from Supermemory
+    2. If customId exists, search for all images with matching customId
+    """
+    print(f"\n🚀 Starting document fetch for ID: {document_id}")
+
+    load_dotenv()
+    api_key = os.environ.get("SUPERMEMORY_API_KEY")
+    
+    if not api_key:
+        raise HTTPException(status_code=500, detail="SUPERMEMORY_API_KEY not configured")
+    
+    # Step 1: Fetch main document
+    document_url = f"https://api.supermemory.ai/v3/documents/{document_id}"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    
+    try:
+        resp = requests.get(document_url, headers=headers, timeout=30)
+        resp.raise_for_status()
+        main_doc = resp.json()
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch document: {str(e)}")
+    
+    # Extract customId from main document metadata if not provided
+    if not custom_id:
+        metadata = main_doc.get("metadata", {})
+        custom_id = metadata.get("customId")
+    
+    keyframe_images = []
+    # Step 2: Search for all images with matching customId
+    if custom_id:
+        search_url = "https://api.supermemory.ai/v3/search"
+        search_payload = {
+            "q": "images",
+            "chunkThreshold": 0.5,
+            "filters": {
+                "AND": [
+                    {
+                        "key": "customId",
+                        "value": custom_id,
+                        "negate": False
+                    }
+                ]
+            }
+        }
+        
+        try:
+            search_resp = requests.post(search_url, json=search_payload, headers=headers, timeout=30)
+            search_resp.raise_for_status()
+            search_results = search_resp.json()
+            
+            # Filter only image type results and fetch full document details
+            for item in search_results.get("results", []):
+                if item.get("type") == "image":
+                    # Get the documentId from the search result
+                    keyframe_doc_id = item.get("documentId")
+                    
+                    if keyframe_doc_id:
+                        try:
+                            # Call Document API for this keyframe
+                            keyframe_doc_url = f"https://api.supermemory.ai/v3/documents/{keyframe_doc_id}"
+                            keyframe_resp = requests.get(keyframe_doc_url, headers=headers, timeout=30)
+                            keyframe_resp.raise_for_status()
+                            keyframe_doc = keyframe_resp.json()
+                            
+                            # Extract URL from chunks
+                            image_url = None
+                            #chunks = keyframe_doc.get("chunks", [])
+                            #if chunks and len(chunks) > 0:
+                                # Get content from first chunk (usually contains the image URL)
+                            #    image_url = chunks[0].get("content", "")
+                            
+                            # If no URL in chunks, try content field directly
+                            #if not image_url:
+                            image_url = keyframe_doc.get("url", "")
+                            summary = keyframe_doc.get("summary", "")
+                            # Create enhanced keyframe object
+                            keyframe_obj = {
+                                "documentId": keyframe_doc_id,
+                                "url": image_url,
+                                "type": "image",
+                                "metadata": keyframe_doc.get("metadata", {}),
+                                "title": keyframe_doc.get("title", ""),
+                                "summary": summary,
+                                "timestamp": keyframe_doc.get("metadata", {}).get("extracted_at", ""),
+                                "frame_number": keyframe_doc.get("metadata", {}).get("frame_index", "")
+                            }
+                            
+                            keyframe_images.append(keyframe_obj)
+                            
+                        except requests.RequestException as e:
+                            # Log error but continue with other keyframes
+                            print(f"Warning: Failed to fetch keyframe document {keyframe_doc_id}: {str(e)}")
+                            continue
+                            
+        except requests.RequestException as e:
+            # Log error but don't fail the request
+            print(f"Warning: Failed to fetch keyframes: {str(e)}")
+    
+    print("main_doc:",main_doc)
+    print("keyframe_images:",keyframe_images)
+    print("custom_id:",custom_id)
+    return DocumentDetailsResponse(
+        document=main_doc,
+        keyframes=keyframe_images,
+        custom_id=custom_id
+    )
+    

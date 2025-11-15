@@ -64,53 +64,23 @@
 </header>
 <main class="flex flex-col flex-1 px-4 py-3">
 <div class="flex flex-col pt-4">
-<label class="flex flex-col w-full max-w-[480px] mx-auto">
-<p class="text-zinc-800 dark:text-white text-base font-medium leading-normal pb-2 sr-only">Search Reels</p>
-<div class="relative">
-<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" style="font-size: 24px;">
-                            search
-                        </span>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-zinc-800 dark:text-white focus:outline-0 focus:ring-0 border border-zinc-300 dark:border-zinc-700 bg-background-light dark:bg-zinc-800 focus:border-primary h-16 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 pl-[52px] pr-[15px] text-lg font-normal leading-normal" placeholder="Describe a reel..." value="How to make sourdough bread"/>
-</div>
+  <label class="flex flex-col w-full max-w-[480px] mx-auto">
+    <p class="text-zinc-800 dark:text-white text-base font-medium leading-normal pb-2 sr-only">Search Reels</p>
+    <div class="relative">
+        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" style="font-size: 24px;">
+            search
+        </span>
+        <input id="search-input" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-zinc-800 dark:text-white focus:outline-0 focus:ring-0 border border-zinc-300 dark:border-zinc-700 bg-background-light dark:bg-zinc-800 focus:border-primary h-16 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 pl-[52px] pr-[15px] text-lg font-normal leading-normal" placeholder="Describe a reel..." value=""/>
+        <button id="search-btn" class="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors">
+            Search
+        </button>
+    </div>
 </label>
+<!-- Update the reel suggestions container to be empty initially -->
 <div class="flex flex-col w-full max-w-[480px] bg-background-light dark:bg-zinc-800 rounded-lg overflow-hidden mt-4 mx-auto" id="reel-suggestions">
-<div class="flex items-center gap-3 p-3 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 cursor-pointer">
-<img alt="Reel Thumbnail" class="size-12 rounded-md object-cover flex-shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCz9oZ44ty7sC1I4ic5_4lLFzz9_3rDe5M8BRePSz0nmXorxd3ITkcAbpvUqmnnSdFYNj9nnLBn2msHHpU5CQ26e1UZSSMckBdrXURE_XxX6m-6s1nJH7rbl9cs3iJ-7sR4jdCeT3HPZRS-LWkJOEbc5jkrNWICEyjVbO0eYhQpzXxb65gMJIQ7SWb-29kZjLkwDbLoXCIVAbwM1O0iQ7fYMJH6vC0MOvC_1IS_4cRJsqzSRBoSDwKwUDKgVJZrx9zVR7pR4mQXTOUO"/>
-<p class="text-zinc-800 dark:text-white text-sm font-normal leading-normal truncate flex-1">
-                                    "Beginner's guide to sourdough starter"
-                                </p>
-<span class="material-symbols-outlined text-zinc-500 dark:text-zinc-400" style="font-size: 20px;">
-                                arrow_outward
-                            </span>
+  <!-- Results will be populated here -->
 </div>
-<div class="flex items-center gap-3 p-3 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 cursor-pointer">
-<img alt="Reel Thumbnail" class="size-12 rounded-md object-cover flex-shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABk1XbEujkxvzKBa6dEqGGuLW1rZVdw10Hy_dw523i_Lk-GeBImd5BGUWaWKsxIvutQ7Xu8N4KSBd35SJg9cNp-kaJneZ6rztUjvADkYzbdKzVD37X3ArGqwEuwvqc9FZ1hwGFgcSN7DSp5HN6fmJvuNxXEDzTU_-GXKrL9UOOq-2-NgZcfBkJwgkVxcWQJEEkSfbTBs9WfoYUtwmAnkD46jgd5dhyPQB2ngU9zEchWhNPYGb6Pw4juKmXP48x9BhcH9oWi53UubFS"/>
-<p class="text-zinc-800 dark:text-white text-sm font-normal leading-normal truncate flex-1">
-                                    "Easy no-knead sourdough bread recipe"
-                                </p>
-<span class="material-symbols-outlined text-zinc-500 dark:text-zinc-400" style="font-size: 20px;">
-                                arrow_outward
-                            </span>
-</div>
-<div class="flex items-center gap-3 p-3 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 cursor-pointer">
-<img alt="Reel Thumbnail" class="size-12 rounded-md object-cover flex-shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATYv4U9weaFoHjMfVKUrmjPum4d1YG9PudTxefrYwfMyhzvxQOkuHz3dsIKmMmSOkwx8ND9hN00e0DfqcGQAWh5a4Esh58CeG_f1Uz1SpMDzCtQWMq6lN6X6IogKl8_U2IYjbXFx05OCsF4Y3_aFIMj5KJo0G5PLeZZJpusenlaypKD-gTHYxCwOFUVW38-mzhW04XQyRl5h8zzrWfLzlYjar-rm-aA27AMRLt_EvlvDRcg-Gk9UjWRh7HAtlnI_Y8Umf_5PjbLYau"/>
-<p class="text-zinc-800 dark:text-white text-sm font-normal leading-normal truncate flex-1">
-                                    "Sourdough shaping techniques for beginners"
-                                </p>
-<span class="material-symbols-outlined text-zinc-500 dark:text-zinc-400" style="font-size: 20px;">
-                                arrow_outward
-                            </span>
-</div>
-<div class="flex items-center gap-3 p-3 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 cursor-pointer">
-<img alt="Reel Thumbnail" class="size-12 rounded-md object-cover flex-shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcpleMbSQu4x8nm1COLaHZjSf2_c5e0dSa7a3_DsX_7s7uBi6cuebjm95V-21wZlaaKT7BLU6nFdNZEkgMwmsa2Tb5R-rVHuSqoPsFwHSdTVr0rPer-vMeKsi9o2j7nWP8FB3ZxndMDmluYS6FyPg7NHwDeYieRulFGoDd0jTZIUFfQrp4Erz7eOOG1FjIzMaipXhw05F95Mr3aJK8dgRh6vY0F27ljuRRNxBr45EhxVPytTvuYexQ5pziKl1tbE0k6GIjfT1VcCpy"/>
-<p class="text-zinc-800 dark:text-white text-sm font-normal leading-normal truncate flex-1">
-                                    "Advanced sourdough scoring patterns"
-                                </p>
-<span class="material-symbols-outlined text-zinc-500 dark:text-zinc-400" style="font-size: 20px;">
-                                arrow_outward
-                            </span>
-</div>
-</div>
+
 </div>
 <div class="flex flex-col gap-4 mt-8 px-4 w-full max-w-[480px] mx-auto">
 <div class="flex flex-col gap-2">
@@ -138,7 +108,7 @@
 <script>
   // Simple client-side handler to submit the reel URL to the FastAPI backend
   // and navigate to the processing status screen.
-  async function submitReel() {
+   /*async function submitReel() {
     const input = document.getElementById('reel-link-input');
     if (!input) return;
 
@@ -171,10 +141,160 @@
     }
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
+ window.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('process-reel-btn');
     if (!btn) return;
     btn.addEventListener('click', submitReel);
+  });*/
+
+  async function performSearch() {
+    const input = document.getElementById('search-input');
+    const suggestionsContainer = document.getElementById('reel-suggestions');
+    
+    if (!input || !suggestionsContainer) return;
+    
+    const query = input.value.trim();
+    if (!query) {
+      alert('Please enter a search query.');
+      return;
+    }
+    
+    // Show loading state
+    suggestionsContainer.innerHTML = `
+      <div class="flex items-center justify-center p-8">
+        <p class="text-zinc-500 dark:text-zinc-400">Searching...</p>
+      </div>
+    `;
+    
+    try {
+      const resp = await fetch('/api/reels/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query, limit: 10 }),
+      });
+      
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || 'Search failed');
+      }
+      
+      const data = await resp.json();
+      
+      // Clear and populate results
+      suggestionsContainer.innerHTML = '';
+      
+      if (data.results.length === 0) {
+        suggestionsContainer.innerHTML = `
+          <div class="flex items-center justify-center p-8">
+            <p class="text-zinc-500 dark:text-zinc-400">No results found</p>
+          </div>
+        `;
+        return;
+      }
+      
+      // Create result items
+      data.results.forEach(result => {
+        const resultItem = document.createElement('div');
+        resultItem.className = 'flex items-center gap-3 p-3 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 cursor-pointer transition-colors';
+        
+        const thumbnailUrl = result.thumbnail_url || 'https://via.placeholder.com/48';
+        
+        resultItem.innerHTML = `
+          <img alt="Reel Thumbnail" class="size-12 rounded-md object-cover flex-shrink-0" src="${thumbnailUrl}"/>
+          <p class="text-zinc-800 dark:text-white text-sm font-normal leading-normal truncate flex-1">
+            ${escapeHtml(result.title)}
+          </p>
+          <span class="material-symbols-outlined text-zinc-500 dark:text-zinc-400" style="font-size: 20px;">
+            arrow_outward
+          </span>
+        `;
+        
+        // Add click handler - navigate to generic-view with document_id
+        resultItem.addEventListener('click', () => {
+          // Assuming result has a document_id or we can extract it from metadata
+          const documentId = result.document_id || result.reel_id;
+          if (documentId) {
+            window.location.href = `/generic-view?document_id=${encodeURIComponent(documentId)}`;
+          } else {
+            alert('No document ID available for this result');
+          }
+        });
+        
+        suggestionsContainer.appendChild(resultItem);
+      });
+      
+    } catch (e) {
+      console.error(e);
+      suggestionsContainer.innerHTML = `
+        <div class="flex items-center justify-center p-8">
+          <p class="text-red-500">Error: ${escapeHtml(e.message)}</p>
+        </div>
+      `;
+    }
+  }
+
+  // Helper function to escape HTML
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Submit reel functionality (existing)
+  async function submitReel() {
+    const input = document.getElementById('reel-link-input');
+    if (!input) return;
+
+    const instagramUrl = input.value.trim();
+    if (!instagramUrl) {
+      alert('Please paste an Instagram reel URL.');
+      return;
+    }
+
+    try {
+      const resp = await fetch('/api/reels/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instagram_url: instagramUrl }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to submit reel');
+      }
+
+      const data = await resp.json();
+      const taskId = data.task_id;
+
+      window.location.href = `/processing-status?task_id=${encodeURIComponent(taskId)}`;
+    } catch (e) {
+      console.error(e);
+      alert('Error submitting reel: ' + e.message);
+    }
+  }
+
+  // Event listeners
+  window.addEventListener('DOMContentLoaded', () => {
+    const searchBtn = document.getElementById('search-btn');
+    const searchInput = document.getElementById('search-input');
+    const processBtn = document.getElementById('process-reel-btn');
+    
+    if (searchBtn) {
+      searchBtn.addEventListener('click', performSearch);
+    }
+    
+    if (searchInput) {
+      // Allow Enter key to trigger search
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          performSearch();
+        }
+      });
+    }
+    
+    if (processBtn) {
+      processBtn.addEventListener('click', submitReel);
+    }
   });
 </script>
 

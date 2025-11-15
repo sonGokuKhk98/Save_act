@@ -49,18 +49,18 @@ import requests
 url = "https://api.supermemory.ai/v3/search"
 
 payload = {
-    "q": "images",
+    "q": "polo sweater",
     "chunkThreshold": 0.5,
-    "includeFullDocs":True,
-    "filters": {
-        "AND": [
-            {
-                "key": "customId",  # Note: In your code it's stored as "customId"
-                "value": "extraction_7b488f913da5",  # Replace with your actual customId
-                "negate": False
-            }
-        ]
-    },
+    #"includeFullDocs":True,
+    #"filters": {
+    #    "AND": [
+    #        {
+     #           "key": "customId",  # Note: In your code it's stored as "customId"
+    #            "value": "extraction_7b488f913da5",  # Replace with your actual customId
+    #            "negate": False
+    #        }
+    #    ]
+    #},
 
 }
 

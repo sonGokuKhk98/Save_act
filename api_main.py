@@ -58,19 +58,11 @@ async def processing_status_page() -> HTMLResponse:
         _load_html("src/models/UI elements/processing_status/code.html")
     )
 
-
 @app.get("/generic-view", response_class=HTMLResponse)
 async def generic_view_page() -> HTMLResponse:
-    """
-    GenericExtraction detail page.
-
-    The `reel_id` is passed as a query parameter and the page JS
-    fetches `/api/reels/{reel_id}` to hydrate itself.
-    """
     return HTMLResponse(
-        _load_html("src/code.html")
+        _load_html("src/code.html") 
     )
-
 
 @app.get("/extracted-view", response_class=HTMLResponse)
 async def extracted_view_page() -> HTMLResponse:
