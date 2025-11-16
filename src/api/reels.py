@@ -182,19 +182,6 @@ async def get_status(task_id: str):
     return StatusResponse(task_id=task_id, **task)
 
 
-@router.get("/{reel_id}")
-async def get_reel(reel_id: str):
-    """
-    Retrieve the extracted data for a completed reel.
-
-    The response includes whether the extraction was generic and the
-    model name used, so the UI can choose the correct detail view.
-    """
-    reel = REELS.get(reel_id)
-    if not reel:
-        raise HTTPException(status_code=404, detail="Unknown reel_id")
-    return reel
-
 @router.post("/search", response_model=SearchResponse)
 async def search_reels(payload: SearchRequest):
     """
@@ -273,6 +260,131 @@ async def search_reels(payload: SearchRequest):
         
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+@router.get("/recent", response_model=SearchResponse)
+async def recent_reels(limit: int = 10):
+    """
+    Return the most recently saved reels from Supermemory.
+
+    This uses the Supermemory search API with a broad query and then
+    sorts results by the `extracted_at` metadata field in descending
+    order so the newest items appear first.
+    """
+    load_dotenv()
+    api_key = os.environ.get("SUPERMEMORY_API_KEY")
+
+    if not api_key:
+        raise HTTPException(status_code=500, detail="SUPERMEMORY_API_KEY not configured")
+
+    search_url = "https://api.supermemory.ai/v3/search"
+
+    # Use a broad query to pull recent documents; we oversample a bit so
+    # that after filtering to text-type results we still have enough.
+    search_payload = {
+        "q": "*",
+        "chunkThreshold": 0.0,
+        "includeFullDocs": True,
+        "limit": max(limit, 1) * 3,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        response = requests.post(search_url, json=search_payload, headers=headers, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+
+        candidates: list[tuple[datetime, SearchResult]] = []
+        seen_ids = set()
+
+        for item in data.get("results", []):
+            if item.get("type") != "text":
+                continue
+            doc_id = item.get("documentId")
+            if not doc_id or doc_id in seen_ids:
+                continue
+            seen_ids.add(doc_id)
+
+            metadata = item.get("metadata", {}) or {}
+            title = item.get("title") or metadata.get("topic") or "Untitled"
+            thumbnail_url = metadata.get("thumbnail_url") or metadata.get("image_url")
+            custom_id = metadata.get("customId")
+
+            # Parse extracted_at for sorting; fall back to minimal value.
+            extracted_str = metadata.get("extracted_at") or metadata.get("created_at") or ""
+            try:
+                extracted_ts = datetime.fromisoformat(extracted_str)
+            except Exception:
+                extracted_ts = datetime.min
+
+            # If we don't already have a thumbnail, try to find one by looking up
+            # an image document that shares the same customId (keyframes we stored
+            # alongside the text document).
+            if not thumbnail_url and custom_id:
+                try:
+                    img_search_payload = {
+                        "q": "images",
+                        "chunkThreshold": 0.5,
+                        "filters": {
+                            "AND": [
+                                {
+                                    "key": "customId",
+                                    "value": custom_id,
+                                    "negate": False,
+                                }
+                            ]
+                        },
+                        "limit": 1,
+                    }
+                    img_resp = requests.post(
+                        search_url, json=img_search_payload, headers=headers, timeout=30
+                    )
+                    img_resp.raise_for_status()
+                    img_data = img_resp.json()
+                    for img_item in img_data.get("results", []):
+                        if img_item.get("type") != "image":
+                            continue
+                        # Prefer direct URL from the image document if available.
+                        img_doc_id = img_item.get("documentId")
+                        if img_doc_id:
+                            try:
+                                doc_url = f"https://api.supermemory.ai/v3/documents/{img_doc_id}"
+                                doc_resp = requests.get(doc_url, headers=headers, timeout=30)
+                                doc_resp.raise_for_status()
+                                img_doc = doc_resp.json()
+                                thumbnail_url = (
+                                    img_doc.get("url")
+                                    or img_doc.get("metadata", {}).get("thumbnail_url")
+                                    or img_doc.get("metadata", {}).get("image_url")
+                                )
+                                if thumbnail_url:
+                                    break
+                            except requests.RequestException:
+                                continue
+                except requests.RequestException:
+                    # If thumbnail enrichment fails, we still return the text result.
+                    pass
+
+            result = SearchResult(
+                title=title,
+                thumbnail_url=thumbnail_url,
+                reel_id=doc_id,
+                document_id=doc_id,
+                score=item.get("score", 0.0),
+            )
+            candidates.append((extracted_ts, result))
+
+        # Sort by timestamp descending and trim to requested limit.
+        candidates.sort(key=lambda pair: pair[0], reverse=True)
+        results = [r for _, r in candidates[:limit]]
+
+        return SearchResponse(results=results, total=len(results))
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Recent reels lookup failed: {str(e)}")
 
 @router.get("/document/{document_id}")
 async def get_document_details(document_id: str, custom_id: Optional[str] = None):
@@ -432,4 +544,18 @@ async def get_document_details(document_id: str, custom_id: Optional[str] = None
         keyframes=keyframe_images,
         custom_id=custom_id
     )
+
+
+@router.get("/{reel_id}")
+async def get_reel(reel_id: str):
+    """
+    Retrieve the extracted data for a completed reel.
+    
+    The response includes whether the extraction was generic and the
+    model name used, so the UI can choose the correct detail view.
+    """
+    reel = REELS.get(reel_id)
+    if not reel:
+        raise HTTPException(status_code=404, detail="Unknown reel_id")
+    return reel
     

@@ -149,12 +149,24 @@
 </div>
 </div>
 <div class="flex w-full gap-4 pt-4">
-<button id="wt-pause" class="flex items-center justify-center gap-2 flex-1 rounded-full bg-slate-200 dark:bg-[#3b4a54] py-3 text-slate-800 dark:text-white text-base font-semibold leading-normal">
-<span class="material-symbols-outlined">pause</span> Pause
-      </button>
-<button id="wt-next-btn" class="flex items-center justify-center gap-2 flex-1 rounded-full bg-primary py-3 text-white text-base font-semibold leading-normal">
-        Next Exercise <span class="material-symbols-outlined">skip_next</span>
-</button>
+  <button
+    id="wt-pause"
+    class="flex items-center justify-center gap-2 flex-1 rounded-full bg-slate-200 dark:bg-[#3b4a54] py-3 text-slate-800 dark:text-white text-base font-semibold leading-normal"
+  >
+    <span class="material-symbols-outlined">pause</span> Pause
+  </button>
+  <button
+    id="wt-next-set-btn"
+    class="flex items-center justify-center gap-2 flex-1 rounded-full bg-slate-200 dark:bg-[#3b4a54] py-3 text-slate-800 dark:text-white text-base font-semibold leading-normal"
+  >
+    Next Set <span class="material-symbols-outlined">fast_forward</span>
+  </button>
+  <button
+    id="wt-next-ex-btn"
+    class="flex items-center justify-center gap-2 flex-1 rounded-full bg-primary py-3 text-white text-base font-semibold leading-normal"
+  >
+    Next Exercise <span class="material-symbols-outlined">skip_next</span>
+  </button>
 </div>
 </div>
 <div class="fixed bottom-0 left-0 right-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 workout-detail-view" id="detailActionBar">
@@ -195,7 +207,10 @@
 
   function getReelId() {
     const params = new URLSearchParams(window.location.search);
-    return params.get('reel_id');
+    // Support both legacy "reel_id" (local flow) and newer "document_id"
+    // (Supermemory-backed flow). Both keys ultimately map to entries in
+    // the REELS cache on the backend.
+    return params.get('reel_id') || params.get('document_id');
   }
 
   async function fetchReel(reelId) {
@@ -321,6 +336,31 @@
     }
   }
 
+  // Read the latest values from the duration / sets inputs so that
+  // user preferences are applied when starting or skipping exercises.
+  function readUserSettings() {
+    const durInput = document.getElementById('wt-duration-input');
+    const setsInput = document.getElementById('wt-sets-input');
+
+    if (durInput) {
+      const val = Number(durInput.value);
+      if (!isNaN(val) && val >= 5 && val <= 600) {
+        userDurationSeconds = val;
+      } else {
+        userDurationSeconds = null;
+      }
+    }
+
+    if (setsInput) {
+      const val = Number(setsInput.value);
+      if (!isNaN(val) && val >= 1 && val <= 10) {
+        userSets = val;
+      } else {
+        userSets = null;
+      }
+    }
+  }
+
   function updateTimerUI() {
     const phaseEl = document.getElementById('wt-phase');
     const setEl = document.getElementById('wt-set');
@@ -406,6 +446,17 @@
       setsRecoEl.textContent = `Recommended: ${recommendedSets} set${recommendedSets !== 1 ? 's' : ''}`;
     }
 
+    // If inputs are empty (first run), pre-fill them with recommended
+    // values so the user can see and tweak them.
+    const durInput = document.getElementById('wt-duration-input');
+    if (durInput && (durInput.value === '' || durInput.value == null)) {
+      durInput.value = baseWork;
+    }
+    const setsInput = document.getElementById('wt-sets-input');
+    if (setsInput && (setsInput.value === '' || setsInput.value == null)) {
+      setsInput.value = recommendedSets;
+    }
+
     updateTimerUI();
   }
 
@@ -483,8 +534,31 @@
       if (nextEl) nextEl.textContent = 'Next: Done';
       return;
     }
+    // Apply any updated user settings before moving on so the timer
+    // resets correctly for the next exercise.
+    readUserSettings();
     loadExercise(currentIndex);
     startTimer();
+  }
+
+  // Manually skip to the next set for the current exercise, ignoring any
+  // remaining time in the current interval.
+  function skipToNextSet() {
+    if (!workoutPlan || !workoutPlan.exercises.length) return;
+
+    if (phaseMode === 'work' || phaseMode === 'rest') {
+      if (currentSetIndex < totalSetsForCurrent) {
+        currentSetIndex += 1;
+        phaseMode = 'work';
+        remainingSeconds = currentWorkSeconds;
+        updateTimerUI();
+      } else {
+        // If we're already on the last set, behave like Next Exercise.
+        nextExercise();
+      }
+    } else {
+      nextExercise();
+    }
   }
 
   function startWorkoutFromBeginning() {
@@ -492,6 +566,8 @@
       alert('No workout exercises found for this reel.');
       return;
     }
+    // Capture the latest user preferences before starting
+    readUserSettings();
     currentIndex = 0;
     showTimerView();
     loadExercise(currentIndex);
@@ -510,33 +586,21 @@
       populateDetailView();
 
       const pauseBtn = document.getElementById('wt-pause');
-      const nextBtn = document.getElementById('wt-next-btn');
+      const nextSetBtn = document.getElementById('wt-next-set-btn');
+      const nextExBtn = document.getElementById('wt-next-ex-btn');
       const durInput = document.getElementById('wt-duration-input');
       const setsInput = document.getElementById('wt-sets-input');
 
       if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
-      if (nextBtn) nextBtn.addEventListener('click', nextExercise);
+      if (nextSetBtn) nextSetBtn.addEventListener('click', skipToNextSet);
+      if (nextExBtn) nextExBtn.addEventListener('click', nextExercise);
 
       if (durInput) {
-        durInput.addEventListener('change', () => {
-          const val = Number(durInput.value);
-          if (!isNaN(val) && val >= 5 && val <= 600) {
-            userDurationSeconds = val;
-          } else {
-            userDurationSeconds = null;
-          }
-        });
+        durInput.addEventListener('input', readUserSettings);
       }
 
       if (setsInput) {
-        setsInput.addEventListener('change', () => {
-          const val = Number(setsInput.value);
-          if (!isNaN(val) && val >= 1 && val <= 10) {
-            userSets = val;
-          } else {
-            userSets = null;
-          }
-        });
+        setsInput.addEventListener('input', readUserSettings);
       }
     } catch (e) {
       console.error('Error loading workout view:', e);

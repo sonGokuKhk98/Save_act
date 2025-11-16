@@ -76,9 +76,9 @@
         </button>
     </div>
 </label>
-<!-- Update the reel suggestions container to be empty initially -->
-<div class="flex flex-col w-full max-w-[480px] bg-background-light dark:bg-zinc-800 rounded-lg overflow-hidden mt-4 mx-auto" id="reel-suggestions">
-  <!-- Results will be populated here -->
+<!-- Reel suggestions / recent reels grid -->
+<div class="w-full max-w-[480px] mt-4 mx-auto" id="reel-suggestions">
+  <!-- Cards will be populated here -->
 </div>
 
 </div>
@@ -147,6 +147,71 @@
     btn.addEventListener('click', submitReel);
   });*/
 
+  function renderReelCards(results) {
+    const container = document.getElementById('reel-suggestions');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (!results || !results.length) {
+      container.innerHTML = `
+        <div class="flex items-center justify-center p-8">
+          <p class="text-zinc-500 dark:text-zinc-400">No reels found</p>
+        </div>
+      `;
+      return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-2 gap-4';
+
+    results.forEach((result) => {
+      const thumbnailUrl = result.thumbnail_url || '';
+      const title = escapeHtml(result.title || 'Untitled');
+      const documentId = result.document_id || result.reel_id;
+
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className =
+        'relative overflow-hidden rounded-3xl bg-zinc-900/60 focus:outline-none focus:ring-2 focus:ring-primary/70 text-left';
+
+      // Build card content with a local fallback when no thumbnail is available.
+      const hasThumb = Boolean(thumbnailUrl);
+      const imageSection = hasThumb
+        ? `
+        <div class="aspect-[3/4] w-full overflow-hidden">
+          <img
+            src="${thumbnailUrl}"
+            alt="${title}"
+            class="h-full w-full object-cover"
+          />
+        </div>`
+        : `
+        <div class="aspect-[3/4] w-full overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-zinc-950 flex items-center justify-center">
+          <span class="material-symbols-outlined text-zinc-500" style="font-size: 40px;">
+            movie
+          </span>
+        </div>`;
+
+      card.innerHTML = `
+        ${imageSection}
+        <div class="pointer-events-none absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+          <p class="text-white text-sm font-semibold line-clamp-2">${title}</p>
+        </div>
+      `;
+
+      if (documentId) {
+        card.addEventListener('click', () => {
+          window.location.href = `/generic-view?document_id=${encodeURIComponent(documentId)}`;
+        });
+      }
+
+      grid.appendChild(card);
+    });
+
+    container.appendChild(grid);
+  }
+
   async function performSearch() {
     const input = document.getElementById('search-input');
     const suggestionsContainer = document.getElementById('reel-suggestions');
@@ -179,55 +244,41 @@
       }
       
       const data = await resp.json();
-      
-      // Clear and populate results
-      suggestionsContainer.innerHTML = '';
-      
-      if (data.results.length === 0) {
-        suggestionsContainer.innerHTML = `
-          <div class="flex items-center justify-center p-8">
-            <p class="text-zinc-500 dark:text-zinc-400">No results found</p>
-          </div>
-        `;
-        return;
-      }
-      
-      // Create result items
-      data.results.forEach(result => {
-        const resultItem = document.createElement('div');
-        resultItem.className = 'flex items-center gap-3 p-3 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 cursor-pointer transition-colors';
-        
-        const thumbnailUrl = result.thumbnail_url || 'https://via.placeholder.com/48';
-        
-        resultItem.innerHTML = `
-          <img alt="Reel Thumbnail" class="size-12 rounded-md object-cover flex-shrink-0" src="${thumbnailUrl}"/>
-          <p class="text-zinc-800 dark:text-white text-sm font-normal leading-normal truncate flex-1">
-            ${escapeHtml(result.title)}
-          </p>
-          <span class="material-symbols-outlined text-zinc-500 dark:text-zinc-400" style="font-size: 20px;">
-            arrow_outward
-          </span>
-        `;
-        
-        // Add click handler - navigate to generic-view with document_id
-        resultItem.addEventListener('click', () => {
-          // Assuming result has a document_id or we can extract it from metadata
-          const documentId = result.document_id || result.reel_id;
-          if (documentId) {
-            window.location.href = `/generic-view?document_id=${encodeURIComponent(documentId)}`;
-          } else {
-            alert('No document ID available for this result');
-          }
-        });
-        
-        suggestionsContainer.appendChild(resultItem);
-      });
+      renderReelCards(data.results || []);
       
     } catch (e) {
       console.error(e);
       suggestionsContainer.innerHTML = `
         <div class="flex items-center justify-center p-8">
           <p class="text-red-500">Error: ${escapeHtml(e.message)}</p>
+        </div>
+      `;
+    }
+  }
+
+  async function loadRecentReels() {
+    const suggestionsContainer = document.getElementById('reel-suggestions');
+    if (!suggestionsContainer) return;
+
+    suggestionsContainer.innerHTML = `
+      <div class="flex items-center justify-center p-8">
+        <p class="text-zinc-500 dark:text-zinc-400">Loading recent reels...</p>
+      </div>
+    `;
+
+    try {
+      const resp = await fetch('/api/reels/recent?limit=8');
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to load recent reels');
+      }
+      const data = await resp.json();
+      renderReelCards(data.results || []);
+    } catch (e) {
+      console.error(e);
+      suggestionsContainer.innerHTML = `
+        <div class="flex items-center justify-center p-8">
+          <p class="text-red-500">Error loading recent reels: ${escapeHtml(e.message)}</p>
         </div>
       `;
     }
@@ -295,6 +346,9 @@
     if (processBtn) {
       processBtn.addEventListener('click', submitReel);
     }
+
+    // On first load, show the most recent reels saved in Supermemory.
+    loadRecentReels();
   });
 </script>
 
