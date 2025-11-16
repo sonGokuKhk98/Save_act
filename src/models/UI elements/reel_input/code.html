@@ -48,19 +48,30 @@
 <body>
 <div class="relative flex h-screen w-full flex-col bg-background-light dark:bg-background-dark font-display group/design-root overflow-y-auto">
 <header class="flex shrink-0 items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10">
-<div class="flex size-12 shrink-0 items-center justify-start">
-<span class="material-symbols-outlined text-zinc-800 dark:text-white" style="font-size: 28px;">
-                    auto_awesome
-                </span>
-</div>
-<h1 class="text-zinc-800 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Predictive Search</h1>
-<div class="flex w-12 items-center justify-end">
-<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-transparent text-zinc-800 dark:text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
-<span class="material-symbols-outlined" style="font-size: 24px;">
-                        help_outline
-                    </span>
-</button>
-</div>
+  <div class="flex size-12 shrink-0 items-center justify-start">
+    <span class="material-symbols-outlined text-zinc-800 dark:text-white" style="font-size: 28px;">
+      auto_awesome
+    </span>
+  </div>
+  <div class="flex flex-col items-center flex-1 min-w-0">
+    <h1 class="text-zinc-800 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">
+      Reel Input
+    </h1>
+    <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+      Search, import, and browse your AI-structured reels.
+    </p>
+  </div>
+  <div class="flex w-12 items-center justify-end">
+    <button
+      id="browse-reels-button"
+      type="button"
+      class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-9 w-9 bg-zinc-900/5 dark:bg-zinc-700 text-zinc-800 dark:text-white text-[11px] font-semibold leading-normal tracking-[0.02em] border border-zinc-300/70 dark:border-zinc-600"
+    >
+      <span class="material-symbols-outlined text-[16px]">
+        video_library
+      </span>
+    </button>
+  </div>
 </header>
 <main class="flex flex-col flex-1 px-4 py-3">
 <div class="flex flex-col pt-4">
@@ -329,6 +340,7 @@
     const searchBtn = document.getElementById('search-btn');
     const searchInput = document.getElementById('search-input');
     const processBtn = document.getElementById('process-reel-btn');
+    const browseBtn = document.getElementById('browse-reels-button');
     
     if (searchBtn) {
       searchBtn.addEventListener('click', performSearch);
@@ -345,6 +357,12 @@
     
     if (processBtn) {
       processBtn.addEventListener('click', submitReel);
+    }
+
+    if (browseBtn) {
+      browseBtn.addEventListener('click', () => {
+        window.location.href = '/browse-reels';
+      });
     }
 
     // On first load, show the most recent reels saved in Supermemory.

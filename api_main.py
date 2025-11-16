@@ -51,6 +51,13 @@ async def reel_input_page() -> HTMLResponse:
     )
 
 
+@app.get("/browse-reels", response_class=HTMLResponse)
+async def browse_reels_page() -> HTMLResponse:
+    """Browse previously saved reels, organized by category."""
+    return HTMLResponse(
+        _load_html("src/models/UI elements/browse_reels/code.html")
+    )
+
 @app.get("/processing-status", response_class=HTMLResponse)
 async def processing_status_page() -> HTMLResponse:
     """Processing screen that polls task status."""

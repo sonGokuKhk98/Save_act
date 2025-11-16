@@ -84,8 +84,20 @@
 </div>
 </div>
 <div class="flex items-center gap-2">
-<p id="gx-title" class="text-white tracking-light text-[28px] font-bold leading-tight">Chocolate Chip Cookies</p>
-<button id="gx-source-link" class="material-symbols-outlined text-white/70 hidden" title="Open source reel">link</button>
+  <!-- Title starts in a skeleton/loading state; real text is injected by hydrateGenericExtraction -->
+  <p
+    id="gx-title"
+    class="text-white tracking-light text-[28px] font-bold leading-tight bg-white/10 rounded-md text-transparent animate-pulse px-1"
+  >
+    Loading title…
+  </p>
+  <button
+    id="gx-source-link"
+    class="material-symbols-outlined text-white/70 hidden"
+    title="Open source reel"
+  >
+    link
+  </button>
 </div>
 <div class="flex gap-3 pt-2 flex-wrap pb-2 items-center">
 <div class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-[#223949] px-4">
@@ -933,7 +945,35 @@ AI-generated view based on this keyframe. For products, you can also use Google 
 
       if (aiActions && aiActionsWrapper) {
         aiActions.innerHTML = '';
-        if (Array.isArray(plan.suggested_actions) && plan.suggested_actions.length) {
+        // For workout reels, override the model's suggested actions and show
+        // a single, high-signal "Start workout" button that launches the
+        // guided timer view directly.
+        if (category === 'workout' && window.__REEL_ID__) {
+          const li = document.createElement('li');
+          li.className = 'flex flex-col gap-0.5';
+
+          const btn = document.createElement('button');
+          btn.className =
+            'inline-flex items-center gap-1 rounded-full bg-white/10 hover:bg-white/20 px-3 py-1 text-xs font-semibold text-white transition';
+          btn.textContent = 'Start workout';
+
+          const descEl = document.createElement('p');
+          descEl.className = 'text-white/70 text-[11px] leading-snug';
+          descEl.textContent = 'Open the guided workout timer using the extracted exercises.';
+
+          btn.addEventListener('click', () => {
+            const id = window.__REEL_ID__;
+            if (!id) return;
+            window.location.href = `/extracted-view?reel_id=${encodeURIComponent(id)}`;
+          });
+
+          li.appendChild(btn);
+          li.appendChild(descEl);
+          aiActions.appendChild(li);
+          aiActionsWrapper.classList.remove('hidden');
+          // Highlight the AI section to emphasize this primary action.
+          flashElement(aiSection);
+        } else if (Array.isArray(plan.suggested_actions) && plan.suggested_actions.length) {
           plan.suggested_actions.forEach((a) => {
             if (!a || !a.label) return;
             const li = document.createElement('li');
@@ -1041,6 +1081,14 @@ AI-generated view based on this keyframe. For products, you can also use Google 
     const titleEl = document.getElementById('gx-title');
     if (titleEl) {
       titleEl.textContent = deriveTitle(extraction, raw);
+      // Remove loading skeleton styles once the real title is known.
+      titleEl.classList.remove(
+        'bg-white/10',
+        'text-transparent',
+        'animate-pulse',
+        'rounded-md',
+        'px-1'
+      );
     }
 
     const catEl = document.getElementById('gx-category');
@@ -1871,24 +1919,6 @@ AI-generated view based on this keyframe. For products, you can also use Google 
             },
           });
         }
-
-        if (hasStructuredPlan) {
-          actions.push({
-            label: 'Copy workout plan',
-            description: 'Copy all exercises and structure to your clipboard.',
-            handler: () => {
-              const lines = workoutExercises.map((ex, idx) => {
-                const name = ex.name || `Exercise ${idx + 1}`;
-                const sets = ex.sets ? `${ex.sets} sets` : '';
-                const reps = ex.reps ? `${ex.reps} reps` : '';
-                const dur = ex.duration_seconds ? `${ex.duration_seconds}s` : '';
-                const parts = [sets, reps, dur].filter(Boolean).join(', ');
-                return parts ? `${name} – ${parts}` : name;
-              });
-              copyToClipboard(lines.join('\n'));
-            },
-          });
-        }
       } else if (category === 'product') {
         const products = productsForView;
         if (products.length) {
@@ -1995,7 +2025,7 @@ AI-generated view based on this keyframe. For products, you can also use Google 
       // If no category-specific AI action has been added, expose a generic
       // Agentic Enhance entry in the Take Action sheet that reuses the same
       // /api/agents/plan endpoint and UI.
-      if (window.__REEL_ID__ && !aiActionAdded) {
+      if (window.__REEL_ID__ && !aiActionAdded && category !== 'workout') {
         actions.push({
           label: 'Agentic Enhance this reel',
           description:
@@ -2021,32 +2051,35 @@ AI-generated view based on this keyframe. For products, you can also use Google 
         });
       }
 
-      // Generic actions for any category
-      actions.push({
-        label: 'Copy quick summary',
-        description: 'Copy the title, category, and short description.',
-        handler: () => {
-          const lines = [
-            extraction.title || 'Untitled',
-            `Category: ${capitalize(extraction.category || 'generic')}`,
-          ];
-          if (extraction.description) lines.push('', extraction.description);
-          copyToClipboard(lines.join('\n'));
-        },
-      });
-
-      if (Object.keys(raw).length) {
+      // Generic actions for any category (skip for workout where we only want
+      // a single, focused "Start guided workout" action).
+      if (category !== 'workout') {
         actions.push({
-          label: 'Copy raw JSON',
-          description: 'Copy the full raw_data payload as JSON.',
+          label: 'Copy quick summary',
+          description: 'Copy the title, category, and short description.',
           handler: () => {
-            try {
-              copyToClipboard(JSON.stringify(raw, null, 2));
-            } catch (e) {
-              alert('Unable to serialize raw_data');
-            }
+            const lines = [
+              extraction.title || 'Untitled',
+              `Category: ${capitalize(extraction.category || 'generic')}`,
+            ];
+            if (extraction.description) lines.push('', extraction.description);
+            copyToClipboard(lines.join('\n'));
           },
         });
+
+        if (Object.keys(raw).length) {
+          actions.push({
+            label: 'Copy raw JSON',
+            description: 'Copy the full raw_data payload as JSON.',
+            handler: () => {
+              try {
+                copyToClipboard(JSON.stringify(raw, null, 2));
+              } catch (e) {
+                alert('Unable to serialize raw_data');
+              }
+            },
+          });
+        }
       }
 
       if (actions.length) {

@@ -41,6 +41,28 @@
       min-height: max(884px, 100dvh);
     }
   </style>
+<style>
+    /* Simple confetti effect for completion celebration */
+    @keyframes confetti-fall {
+      0% {
+        transform: translateY(-100%) rotateZ(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(110vh) rotateZ(360deg);
+        opacity: 0;
+      }
+    }
+
+    .confetti-piece {
+      position: absolute;
+      width: 6px;
+      height: 14px;
+      border-radius: 2px;
+      opacity: 0;
+      animation: confetti-fall 1.4s ease-out forwards;
+    }
+  </style>
   </head>
 <body class="bg-background-light dark:bg-background-dark font-display">
 <div class="relative flex h-screen w-full flex-col">
@@ -108,14 +130,14 @@
     <div class="mt-12 w-full max-w-sm">
       <ul class="space-y-4">
         <li class="flex items-center gap-4">
-          <div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+          <div id="status-step-1-icon" class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white">
             <span class="material-symbols-outlined text-lg">check</span>
           </div>
           <p class="text-slate-900 dark:text-white font-medium">Downloading video</p>
         </li>
 
         <li class="flex items-center gap-4">
-          <div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+          <div id="status-step-2-icon" class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white">
             <span class="material-symbols-outlined text-lg">check</span>
           </div>
           <p class="text-slate-900 dark:text-white font-medium">Analyzing content with Gemini AI</p>
@@ -123,34 +145,15 @@
 
         <li class="flex items-center gap-4">
           <div
+            id="status-step-3-icon"
             class="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-primary text-primary"
-          >
-            <svg
-              class="animate-spin h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                fill="currentColor"
-              ></path>
-            </svg>
-          </div>
+          ></div>
           <p class="text-slate-900 dark:text-white font-medium">Structuring key insights</p>
         </li>
 
         <li class="flex items-center gap-4 opacity-50">
           <div
+            id="status-step-4-icon"
             class="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 dark:border-slate-600"
           ></div>
           <p class="text-slate-500 dark:text-slate-400 font-medium">Storing data</p>
@@ -170,6 +173,9 @@
     </div>
   </div>
 </div>
+
+<!-- Completion confetti overlay -->
+<div id="completion-confetti" class="pointer-events-none fixed inset-0 z-20 hidden"></div>
 
 <script>
   let clientProgress = 0;
@@ -206,6 +212,11 @@
     const linearBar = document.getElementById('status-linear-bar');
     const stageEl = document.getElementById('status-stage');
     const linearText = document.getElementById('status-linear-text');
+    const headlineEl = document.getElementById('status-text');
+    const step1Icon = document.getElementById('status-step-1-icon');
+    const step2Icon = document.getElementById('status-step-2-icon');
+    const step3Icon = document.getElementById('status-step-3-icon');
+    const step4Icon = document.getElementById('status-step-4-icon');
 
     if (percentEl) percentEl.textContent = `${progress}%`;
     const maxCircumference = 2 * Math.PI * 45; // r = 45
@@ -215,6 +226,27 @@
     }
     if (linearBar) linearBar.style.width = `${progress}%`;
     if (stageEl) stageEl.textContent = `Stage: ${stage}`;
+
+    // Map stage -> human-friendly headline
+    if (headlineEl) {
+      if (stage === 'downloading') {
+        headlineEl.textContent = 'Downloading reel...';
+      } else if (stage === 'segmenting') {
+        headlineEl.textContent = 'Extracting keyframes...';
+      } else if (stage === 'analyzing') {
+        headlineEl.textContent = 'Structuring key insights...';
+      } else if (stage === 'storing') {
+        headlineEl.textContent = 'Saving extracted data...';
+      } else if (stage === 'done') {
+        headlineEl.textContent = 'Extraction complete!';
+      } else if (stage === 'error') {
+        headlineEl.textContent = 'An error occurred while processing.';
+      } else {
+        headlineEl.textContent = 'Structuring key insights...';
+      }
+    }
+
+    // Optional linear text if a secondary bar exists
     if (linearText) {
       if (stage === 'downloading') linearText.textContent = 'Downloading video...';
       else if (stage === 'segmenting') linearText.textContent = 'Extracting keyframes and audio...';
@@ -224,6 +256,84 @@
       else if (stage === 'error') linearText.textContent = 'An error occurred.';
       else linearText.textContent = 'Processing reel...';
     }
+
+    // Helper to render a step icon in one of three states.
+    function setStepState(el, state) {
+      if (!el) return;
+      if (state === 'done') {
+        el.className =
+          'flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white';
+        el.innerHTML =
+          '<span class="material-symbols-outlined text-lg">check</span>';
+      } else if (state === 'active') {
+        el.className =
+          'flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-primary text-primary';
+        el.innerHTML = `
+          <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+          </svg>`;
+      } else {
+        el.className =
+          'flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 dark:border-slate-600';
+        el.innerHTML = '';
+      }
+    }
+
+    // Determine which step should be active/done from the current stage.
+    let s1 = 'pending';
+    let s2 = 'pending';
+    let s3 = 'pending';
+    let s4 = 'pending';
+
+    if (stage === 'downloading') {
+      s1 = 'active';
+    } else if (stage === 'segmenting') {
+      s1 = 'done';
+      s2 = 'active';
+    } else if (stage === 'analyzing') {
+      s1 = 'done';
+      s2 = 'done';
+      s3 = 'active';
+    } else if (stage === 'storing') {
+      s1 = 'done';
+      s2 = 'done';
+      s3 = 'done';
+      s4 = 'active';
+    } else if (stage === 'done') {
+      s1 = s2 = s3 = s4 = 'done';
+    }
+
+    setStepState(step1Icon, s1);
+    setStepState(step2Icon, s2);
+    setStepState(step3Icon, s3);
+    setStepState(step4Icon, s4);
+  }
+
+  function showCompletionConfetti() {
+    const container = document.getElementById('completion-confetti');
+    if (!container) return;
+    container.innerHTML = '';
+    container.classList.remove('hidden');
+
+    const colors = ['#0d93f2', '#22c55e', '#facc15', '#f97316', '#ec4899'];
+    const pieceCount = 40;
+
+    for (let i = 0; i < pieceCount; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.backgroundColor = colors[i % colors.length];
+      piece.style.left = Math.random() * 100 + 'vw';
+      piece.style.animationDelay = (Math.random() * 0.4).toFixed(2) + 's';
+      piece.style.animationDuration = (1 + Math.random() * 0.6).toFixed(2) + 's';
+      container.appendChild(piece);
+    }
+
+    // Hide confetti after animation completes
+    setTimeout(() => {
+      container.classList.add('hidden');
+      container.innerHTML = '';
+    }, 2000);
   }
 
   function startProgressTicker() {
@@ -258,14 +368,6 @@
         return;
       }
 
-      const textEl = document.getElementById('status-text');
-      if (textEl) {
-        textEl.textContent =
-          data.status === 'completed'
-            ? 'Extraction complete!'
-            : 'Structuring key insights...';
-      }
-
       // Update global stage/progress targets
       currentStage = data.stage || currentStage;
       if (typeof data.progress === 'number') {
@@ -273,12 +375,16 @@
       }
 
       if (data.status === 'completed' && data.reel_id) {
-        // Always route to the generic view first. Users can choose
-        // specialized actions (like starting the workout timer) from
-        // the generic "Take Action" sheet.
-        window.location.href = `/generic-view?reel_id=${encodeURIComponent(
-          data.reel_id
-        )}`;
+        // Finalize circle, show celebration, then route to generic view.
+        serverProgress = 100;
+        currentStage = 'done';
+        updateProgressUI(100, 'done');
+        showCompletionConfetti();
+        setTimeout(() => {
+          window.location.href = `/generic-view?reel_id=${encodeURIComponent(
+            data.reel_id
+          )}`;
+        }, 1400);
         return;
       }
 

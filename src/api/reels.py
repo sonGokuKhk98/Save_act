@@ -68,6 +68,8 @@ class SearchResult(BaseModel):
     reel_id: Optional[str] = None
     document_id: Optional[str] = None  # Explicit document ID field
     score: float
+    category: Optional[str] = None
+    summary: Optional[str] = None
 
 class SearchResponse(BaseModel):
     """Response containing search results."""
@@ -234,18 +236,21 @@ async def search_reels(payload: SearchRequest):
             
             # Extract metadata
             metadata = item.get("metadata", {})
-            source_url = metadata.get("source_url") or "No source URL available"
             title = item.get("title") or metadata.get("topic") or "Untitled"
             thumbnail_url = metadata.get("thumbnail_url") or metadata.get("image_url")
+            category = metadata.get("category")
+            summary = item.get("summary") or metadata.get("summary")
             custom_id = metadata.get("customId")
             
             # Create search result
             result = SearchResult(
                 title=title,
-                thumbnail_url=source_url,
+                thumbnail_url=thumbnail_url,
                 reel_id=doc_id,
                 document_id=doc_id,
-                score=item.get("score", 0.0)
+                score=item.get("score", 0.0),
+                category=category,
+                summary=summary,
             )
             results.append(result)
             print(f"result: {result}")
@@ -270,6 +275,10 @@ async def recent_reels(limit: int = 10):
     This uses the Supermemory search API with a broad query and then
     sorts results by the `extracted_at` metadata field in descending
     order so the newest items appear first.
+
+    NOTE: For safety we cap the requested limit to avoid putting too much
+    load on the upstream API. Even if the client asks for a large value,
+    we only return up to 20 items.
     """
     load_dotenv()
     api_key = os.environ.get("SUPERMEMORY_API_KEY")
@@ -279,13 +288,14 @@ async def recent_reels(limit: int = 10):
 
     search_url = "https://api.supermemory.ai/v3/search"
 
-    # Use a broad query to pull recent documents; we oversample a bit so
-    # that after filtering to text-type results we still have enough.
+    # Clamp the limit to a reasonable range and oversample slightly so that,
+    # after filtering to text-only results, we still have enough items.
+    safe_limit = min(max(limit, 1), 20)
     search_payload = {
         "q": "*",
         "chunkThreshold": 0.0,
         "includeFullDocs": True,
-        "limit": max(limit, 1) * 3,
+        "limit": safe_limit * 3,
     }
 
     headers = {
@@ -312,6 +322,8 @@ async def recent_reels(limit: int = 10):
             metadata = item.get("metadata", {}) or {}
             title = item.get("title") or metadata.get("topic") or "Untitled"
             thumbnail_url = metadata.get("thumbnail_url") or metadata.get("image_url")
+            category = metadata.get("category")
+            summary = item.get("summary") or metadata.get("summary")
             custom_id = metadata.get("customId")
 
             # Parse extracted_at for sorting; fall back to minimal value.
@@ -375,12 +387,14 @@ async def recent_reels(limit: int = 10):
                 reel_id=doc_id,
                 document_id=doc_id,
                 score=item.get("score", 0.0),
+                category=category,
+                summary=summary,
             )
             candidates.append((extracted_ts, result))
 
-        # Sort by timestamp descending and trim to requested limit.
+        # Sort by timestamp descending and trim to requested (clamped) limit.
         candidates.sort(key=lambda pair: pair[0], reverse=True)
-        results = [r for _, r in candidates[:limit]]
+        results = [r for _, r in candidates[:safe_limit]]
 
         return SearchResponse(results=results, total=len(results))
     except requests.RequestException as e:
