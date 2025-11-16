@@ -386,6 +386,27 @@ AI-generated view based on this keyframe. For products, you can also use Google 
     return html;
   }
 
+  // Lightweight markdown cleanup so AI-generated rich_text doesn't show
+  // raw "*" stars or markdown syntax in the UI. We keep line breaks so the
+  // layout still feels structured, but strip list markers and bold/italic
+  // delimiters.
+  function normalizeRichText(str) {
+    if (!str) return '';
+    let text = String(str);
+
+    // Remove leading markdown heading symbols and bullet markers.
+    text = text.replace(/^\s*#+\s*/gm, '');      // "# Heading"
+    text = text.replace(/^\s*[-*]\s+/gm, '');    // "* bullet" or "- bullet"
+    text = text.replace(/^\s*\d+\.\s+/gm, '');   // "1. bullet"
+
+    // Strip common bold / italic markers while keeping the inner content.
+    text = text.replace(/\*\*(.*?)\*\*/g, '$1'); // **bold**
+    text = text.replace(/\*(.*?)\*/g, '$1');     // *italic* or stray *
+    text = text.replace(/_(.*?)_/g, '$1');       // _italic_
+
+    return text;
+  }
+
   // Briefly highlight a section to show that an AI action just updated or
   // applied something to it.
   function flashElement(el) {
@@ -499,7 +520,7 @@ AI-generated view based on this keyframe. For products, you can also use Google 
 
       const bodyP = document.createElement('p');
       bodyP.className = 'text-white text-sm leading-relaxed whitespace-pre-line';
-      bodyP.innerHTML = linkifyText(plan.rich_text);
+      bodyP.innerHTML = linkifyText(normalizeRichText(plan.rich_text));
       wrapper.appendChild(bodyP);
 
       additionalContainer.appendChild(wrapper);

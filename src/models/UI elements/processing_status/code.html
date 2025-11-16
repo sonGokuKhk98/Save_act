@@ -166,6 +166,7 @@
   <div class="w-full p-4 bg-background-light dark:bg-background-dark">
     <div class="flex px-4 py-3">
       <button
+        id="status-primary-btn"
         class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 px-5 flex-1 bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
       >
         <span class="truncate">Cancel</span>
@@ -375,16 +376,24 @@
       }
 
       if (data.status === 'completed' && data.reel_id) {
-        // Finalize circle, show celebration, then route to generic view.
+        // Finalize circle, show celebration, and then invite user to return
+        // to the reel input screen instead of auto-redirecting.
         serverProgress = 100;
         currentStage = 'done';
         updateProgressUI(100, 'done');
         showCompletionConfetti();
-        setTimeout(() => {
-          window.location.href = `/generic-view?reel_id=${encodeURIComponent(
-            data.reel_id
-          )}`;
-        }, 1400);
+
+        const primaryBtn = document.getElementById('status-primary-btn');
+        const linearText = document.getElementById('status-linear-text');
+        if (primaryBtn) {
+          const span = primaryBtn.querySelector('span');
+          if (span) {
+            span.textContent = 'Return to Reel Input';
+          }
+        }
+        if (linearText) {
+          linearText.textContent = 'Processing complete. You can now return to Reel Input.';
+        }
         return;
       }
 
@@ -402,10 +411,19 @@
 
   window.addEventListener('DOMContentLoaded', () => {
     const taskId = getTaskId();
+    const primaryBtn = document.getElementById('status-primary-btn');
+
     if (!taskId) {
       console.warn('Missing task_id in query string');
       return;
     }
+
+    if (primaryBtn) {
+      primaryBtn.addEventListener('click', () => {
+        window.location.href = '/reel-input';
+      });
+    }
+
     startProgressTicker();
     poll(taskId);
   });
