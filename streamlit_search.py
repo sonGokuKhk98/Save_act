@@ -20,7 +20,7 @@ def call_search_api(query: str):
         st.error("SUPERMEMORY_API_KEY is not set in environment variables.")
         return None
 
-    payload = {"q": query, "chunkThreshold": 0.6}
+    payload = {"q": query, "chunkThreshold": 0.7}
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
@@ -330,6 +330,12 @@ def main():
                         st.markdown(f"**Entities:** {', '.join(entities[:5])}")
                 
                 st.markdown(f"**Summary:** {content_understanding.get('summary', 'No summary available')}")
+                # Gemini-suggested generic actions (non-clickable text)
+                suggested_actions = content_understanding.get("suggested_actions") or []
+                if suggested_actions:
+                    st.markdown("**Model-Suggested Actions:**")
+                    for act in suggested_actions[:5]:
+                        st.markdown(f"- {act}")
                 
                 st.divider()
                 
@@ -342,12 +348,22 @@ def main():
                     if enrichments:
                         st.markdown(f"**Type:** {enrichments.get('type', 'Unknown')}")
                         
-                        # Display action items
+                        # Display action items (generic text)
                         action_items = enrichments.get("action_items", [])
                         if action_items:
                             st.markdown("**Suggested Actions:**")
                             for action in action_items:
                                 st.markdown(f"- {action}")
+
+                        # Display structured, clickable actions (e.g. maps / shopping)
+                        actions = enrichments.get("actions", [])
+                        if actions:
+                            st.markdown("**Quick Actions:**")
+                            for a in actions:
+                                label = a.get("label", "Open")
+                                url = a.get("url")
+                                if url:
+                                    st.link_button(label, url)
                         
                         # Display type-specific data
                         if enrichments.get('type') == 'place_to_visit':

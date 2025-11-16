@@ -161,8 +161,8 @@ else:
     try:
         print("   Running agent flow...")
         result = generate_reel_intelligence(
-            document_id="test_doc_123",
-            custom_id="extraction_test123",
+            #document_id="test_doc_123",
+            #custom_id="extraction_test123",
             main_document=sample_main_document,
             keyframe_images=sample_keyframes
         )

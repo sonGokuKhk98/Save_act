@@ -49,7 +49,7 @@ import requests
 url = "https://api.supermemory.ai/v3/search"
 
 payload = {
-    "q": "polo sweater",
+    "q": "give me foot care routine",
     "chunkThreshold": 0.5,
     #"includeFullDocs":True,
     #"filters": {

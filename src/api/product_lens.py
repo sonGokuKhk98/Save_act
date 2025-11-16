@@ -8,7 +8,7 @@ open real "buy" links for the user.
 """
 
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import requests
 from fastapi import APIRouter, HTTPException
@@ -253,3 +253,36 @@ async def product_lens_search_by_url(request: ImageURLRequest):
         "product_matches": product_matches,
         "google_lens_url": data.get("search_metadata", {}).get("google_lens_url", "")
     }
+
+
+def search_amazon_product(query: str) -> Optional[Dict[str, Any]]:
+    """
+    Use SerpAPI's Amazon engine to get a concrete product link for a query.
+    Returns the first organic result, or None if nothing found.
+    """
+    if not SERPAPI_API_KEY:
+        raise HTTPException(status_code=500, detail="SERPAPI_API_KEY not configured")
+
+    params = {
+        "engine": "amazon",
+        "api_key": SERPAPI_API_KEY,
+        "amazon_domain": "amazon.com",
+        "query": query,
+    }
+
+    resp = requests.get("https://serpapi.com/search.json", params=params, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+
+    for item in data.get("organic_results", []):
+        asin = item.get("asin")
+        link = item.get("link")
+        if link:
+            return {
+                "asin": asin,
+                "link": link,
+                "title": item.get("title"),
+                "price": item.get("price"),
+            }
+
+    return None

@@ -11,18 +11,19 @@ from typing import TypedDict, Annotated, Sequence, Optional, Dict, Any, List
 from datetime import datetime
 import operator
 import json
+import re
+from urllib.parse import quote_plus
 
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 
-# Import Instagram API client
-from .instagram_api_client import fetch_instagram_metrics
+from src.services.gemini_model_helper import _get_gemini_model
 
 load_dotenv()
 
-# Initialize Gemini
+# Initialize Gemini (kept for backwards compatibility; most calls now use _get_gemini_model)
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash-exp",
@@ -39,17 +40,15 @@ class ReelIntelligenceState(TypedDict):
     """State object that flows through the agent graph"""
     
     # Input data
-    document_id: str
-    custom_id: str
+    #document_id: str
+    #custom_id: str
     main_document: Dict[str, Any]
     keyframe_images: List[Dict[str, Any]]
     
     # Agent outputs
     reel_context: Optional[Dict[str, Any]]
-    instagram_metrics: Optional[Dict[str, Any]]  # Real-time metrics from Instagram API
+    #instagram_metrics: Optional[Dict[str, Any]]  # Real-time metrics from Instagram API
     content_understanding: Optional[Dict[str, Any]]
-    trust_score: Optional[float]
-    trust_reasoning: Optional[str]
     type_specific_data: Optional[Dict[str, Any]]
     
     # Final output
@@ -87,82 +86,72 @@ def reel_context_builder_agent(state: ReelIntelligenceState) -> ReelIntelligence
         
         source_url = main_doc.get("metadata", {}).get("source_url")
         
-        # Fetch real-time Instagram metrics
-        instagram_data = None
-        if source_url and "instagram.com" in source_url:
-            print("   📊 Fetching real-time Instagram metrics...")
-            try:
-                instagram_data = fetch_instagram_metrics(source_url)
-                if instagram_data.get("success"):
-                    state["instagram_metrics"] = instagram_data
-                    print(f"   ✅ Instagram metrics fetched successfully")
-                else:
-                    print(f"   ⚠️  Could not fetch Instagram metrics: {instagram_data.get('error')}")
-            except Exception as e:
-                print(f"   ⚠️  Instagram API error: {str(e)}")
+        # NOTE: Real-time Instagram metrics are disabled for now.
+        # We rely solely on cached/extracted metrics in the document.
+        #instagram_data = None
         
         # Use Instagram API metrics if available, otherwise use stored metrics
-        if instagram_data and instagram_data.get("success"):
-            api_metrics = instagram_data.get("metrics", {})
-            metrics = {
-                "likes": api_metrics.get("likes", api_metrics.get("like_count", 0)),
-                "views": api_metrics.get("views", api_metrics.get("view_count", 0)),
-                "comments_count": api_metrics.get("comments", api_metrics.get("comment_count", 0)),
-                "shares": api_metrics.get("shares", 0),
-                "saves": api_metrics.get("saved", 0),
-                "reach": api_metrics.get("reach", 0),
-                "impressions": api_metrics.get("impressions", 0),
-                "engagement": api_metrics.get("engagement", 0),
-                "source": "instagram_api",
-                "fetched_at": instagram_data.get("fetched_at")
-            }
-        else:
+        #if instagram_data and instagram_data.get("success"):
+        #    api_metrics = instagram_data.get("metrics", {})
+        #    metrics = {
+        #        "likes": api_metrics.get("likes", api_metrics.get("like_count", 0)),
+        #        "views": api_metrics.get("views", api_metrics.get("view_count", 0)),
+        #        "comments_count": api_metrics.get("comments", api_metrics.get("comment_count", 0)),
+        #        "shares": api_metrics.get("shares", 0),
+        #        "saves": api_metrics.get("saved", 0),
+        #        "reach": api_metrics.get("reach", 0),
+        #        "impressions": api_metrics.get("impressions", 0),
+        #        "engagement": api_metrics.get("engagement", 0),
+        #        "source": "instagram_api",
+        #        "fetched_at": instagram_data.get("fetched_at")
+        #    }
+        #else:
             # Fallback to stored metrics from extraction
-            metrics = {
-                "likes": content_data.get("likes", 0),
-                "views": content_data.get("views", 0),
-                "comments_count": content_data.get("comments_count", 0),
-                "source": "extraction_cache"
-            }
+        #    metrics = {
+        #        "likes": content_data.get("likes", 0),
+        #        "views": content_data.get("views", 0),
+        #        "comments_count": content_data.get("comments_count", 0),
+        #        "source": "extraction_cache"
+        #    }
         
         # Build reel context
         reel_context = {
-            "document_id": state["document_id"],
-            "custom_id": state["custom_id"],
+            #"document_id": state["document_id"],
+            #"custom_id": state["custom_id"],
             "title": content_data.get("title", "Untitled"),
             "category": content_data.get("category", "unknown"),
             "source_url": source_url,
             "extracted_at": main_doc.get("metadata", {}).get("extracted_at"),
-            "confidence_score": content_data.get("confidence_score", 0.0),
+            #"confidence_score": content_data.get("confidence_score", 0.0),
             
             # Content details
-            "transcript": content_data.get("transcript", ""),
-            "description": content_data.get("description", ""),
-            "hashtags": content_data.get("hashtags", []),
-            "mentions": content_data.get("mentions", []),
+            #"transcript": content_data.get("transcript", ""),
+            #"description": content_data.get("description", ""),
+            #"hashtags": content_data.get("hashtags", []),
+            #"mentions": content_data.get("mentions", []),
             
             # Real-time or cached metrics
-            "metrics": metrics,
+            #"metrics": metrics,
             
             # Instagram user info (if available from API)
-            "username": instagram_data.get("details", {}).get("username") if instagram_data else None,
-            "timestamp": instagram_data.get("details", {}).get("timestamp") if instagram_data else None,
+            #"username": instagram_data.get("details", {}).get("username") if instagram_data else None,
+            #"timestamp": instagram_data.get("details", {}).get("timestamp") if instagram_data else None,
             
             # Keyframes info
             "keyframes_count": len(keyframes),
-            "keyframes_ids": [kf.get("documentId") for kf in keyframes],
+            "keyframes_summary": [kf.get("summary") for kf in keyframes],
             
             # Type-specific data
             "type_specific": content_data.get("details", {}),
+            "content": content_data,
         }
         
         state["reel_context"] = reel_context
         state["messages"].append(
-            AIMessage(content=f"✅ Built reel context for: {reel_context['title']} (Metrics: {metrics['source']})")
+            AIMessage(content=f"✅ Built reel context for: {reel_context['title']}")
         )
         
         print(f"✅ [Agent 0] Context built for: {reel_context['title']}")
-        print(f"   📊 Metrics source: {metrics['source']}")
         
     except Exception as e:
         error_msg = f"Error in Reel Context Builder: {str(e)}"
@@ -177,59 +166,103 @@ def reel_context_builder_agent(state: ReelIntelligenceState) -> ReelIntelligence
 # Agent 1: Gemini Content Understanding
 # ============================================================================
 
+def _call_gemini_for_content_understanding(reel_context: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Shared helper to call Gemini and parse structured content understanding.
+
+    Returns a dict with keys: content_type, entities, topics, summary, sentiment, suggested_actions.
+    """
+    import json as _json
+
+    system_prompt = (
+        "You are an assistant that analyzes short social video content.\n"
+        "You receive structured JSON context for an Instagram reel and must "
+        "return compact JSON describing what the content is about, without "
+        "hallucinating concrete facts that are not implied.\n"
+    )
+
+    user_prompt = (
+        "Here is the structured reel_context JSON:\n"
+        f"{reel_context}\n\n"
+        "Respond strictly as compact JSON with the following shape:\n"
+        "{\n"
+        #'  "content_type": "workout | recipe | travel | product_review | educational | entertainment | other",\n'
+        '  "entities": ["list of key entities such as people, brands, products, or places"],\n'
+        #'  "topics": ["list of high-level topics/themes"],\n'
+        #'  "summary": "2-3 sentence plain-text summary of the reel",\n'
+        #'  "sentiment": "positive | neutral | negative",\n'
+        '  "suggested_actions": [\n'
+        '    "short, user-facing action labels such as \\"Open in maps\\", \\"Search products\\", \\"Save recipe\\", etc."\n'
+        "  ]\n"
+        "}\n"
+        "Do not add any extra keys, comments, or explanations outside this JSON object."
+    )
+
+    try:
+        # Prefer Pro model when available; fall back to flash if we hit quota limits.
+        model = _get_gemini_model(allow_pro=True)
+        resp = model.generate_content([system_prompt, user_prompt])
+    except Exception as exc:  # pragma: no cover - depends on remote API
+        msg = str(exc)
+        if "ResourceExhausted" in msg or "quota" in msg or "429" in msg:
+            model = _get_gemini_model(allow_pro=False)
+            resp = model.generate_content([system_prompt, user_prompt])
+        else:
+            raise
+
+    text = resp.text or ""
+
+    # Try to locate the JSON object within the model response.
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        # Fallback: treat whole response as summary only.
+        return {
+            "content_type": reel_context.get("category", "unknown"),
+            "entities": [],
+            "topics": [],
+            "summary": text[:400],
+            "sentiment": "neutral",
+        }
+
+    try:
+        data = _json.loads(match.group(0))
+    except _json.JSONDecodeError:
+        # Fallback if JSON parsing fails
+        return {
+            "content_type": reel_context.get("category", "unknown"),
+            "entities": [],
+            "topics": [],
+            "summary": text[:400],
+            "sentiment": "neutral",
+        }
+
+    # Normalize and provide safe defaults
+    suggested_actions = data.get("suggested_actions") or []
+    if isinstance(suggested_actions, str):
+        suggested_actions = [suggested_actions]
+
+    return {
+        "content_type": data.get("content_type") or reel_context.get("category", "unknown"),
+        "entities": data.get("entities") or [],
+        "topics": data.get("topics") or [],
+        "summary": data.get("summary") or "",
+        "sentiment": data.get("sentiment") or "neutral",
+        "suggested_actions": suggested_actions,
+    }
+
+
 def gemini_content_understanding_agent(state: ReelIntelligenceState) -> ReelIntelligenceState:
     """
-    Agent 1: Uses Gemini to understand content type, extract entities, and generate summary
+    Agent 1: Uses Gemini to understand content type, extract entities, and generate summary.
+
+    This version reuses the shared Gemini model helper and robust JSON parsing
+    pattern from the agent_actions module.
     """
     print("🧠 [Agent 1] Gemini Content Understanding - Starting...")
     
     try:
         reel_context = state["reel_context"]
-        
-        # Build prompt for Gemini
-        prompt = f"""
-Analyze this Instagram reel content and provide structured insights:
-
-Title: {reel_context['title']}
-Category: {reel_context['category']}
-Transcript: {reel_context['transcript'][:500]}...
-Description: {reel_context['description']}
-Hashtags: {', '.join(reel_context['hashtags'][:10])}
-
-Please provide:
-1. Content Type Classification (workout, recipe, travel, product_review, educational, entertainment, etc.)
-2. Key Entities (people, places, products, brands mentioned)
-3. Main Topics/Themes
-4. Brief Summary (2-3 sentences)
-5. Sentiment (positive, neutral, negative)
-
-Format your response as JSON with keys: content_type, entities, topics, summary, sentiment
-"""
-        
-        # Call Gemini
-        response = llm.invoke([HumanMessage(content=prompt)])
-        response_text = response.content
-        
-        # Try to parse JSON response
-        try:
-            # Extract JSON from markdown code blocks if present
-            if "```json" in response_text:
-                json_str = response_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in response_text:
-                json_str = response_text.split("```")[1].split("```")[0].strip()
-            else:
-                json_str = response_text
-            
-            content_understanding = json.loads(json_str)
-        except json.JSONDecodeError:
-            # Fallback if JSON parsing fails
-            content_understanding = {
-                "content_type": reel_context['category'],
-                "entities": [],
-                "topics": [],
-                "summary": response_text[:200],
-                "sentiment": "neutral"
-            }
+        content_understanding = _call_gemini_for_content_understanding(reel_context)
         
         state["content_understanding"] = content_understanding
         state["messages"].append(
@@ -248,100 +281,14 @@ Format your response as JSON with keys: content_type, entities, topics, summary,
 
 
 # ============================================================================
-# Agent 2: Trust Score Calculator
-# ============================================================================
-
-def trust_score_agent(state: ReelIntelligenceState) -> ReelIntelligenceState:
-    """
-    Agent 2: Calculates trust score based on metrics, content quality, and Gemini analysis
-    """
-    print("🎯 [Agent 2] Trust Score Calculator - Starting...")
-    
-    try:
-        reel_context = state["reel_context"]
-        content_understanding = state["content_understanding"]
-        
-        # Build trust score calculation prompt
-        prompt = f"""
-Calculate a trust score (0-100) for this Instagram reel based on the following factors:
-
-Content Details:
-- Title: {reel_context['title']}
-- Category: {reel_context['category']}
-- Confidence Score: {reel_context['confidence_score']}
-- Content Type: {content_understanding.get('content_type')}
-- Sentiment: {content_understanding.get('sentiment')}
-
-Metrics:
-- Likes: {reel_context['metrics']['likes']}
-- Views: {reel_context['metrics']['views']}
-- Comments: {reel_context['metrics']['comments_count']}
-
-Content Quality:
-- Has Transcript: {bool(reel_context['transcript'])}
-- Has Description: {bool(reel_context['description'])}
-- Number of Hashtags: {len(reel_context['hashtags'])}
-- Number of Keyframes: {reel_context['keyframes_count']}
-
-Consider:
-1. Engagement rate (likes/views ratio)
-2. Content completeness
-3. Sentiment alignment
-4. Confidence score from extraction
-
-Provide:
-1. Trust Score (0-100)
-2. Brief reasoning (2-3 sentences)
-
-Format as JSON: {{"trust_score": 85, "reasoning": "..."}}
-"""
-        
-        response = llm.invoke([HumanMessage(content=prompt)])
-        response_text = response.content
-        
-        # Parse response
-        try:
-            if "```json" in response_text:
-                json_str = response_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in response_text:
-                json_str = response_text.split("```")[1].split("```")[0].strip()
-            else:
-                json_str = response_text
-            
-            trust_data = json.loads(json_str)
-            state["trust_score"] = float(trust_data.get("trust_score", 50))
-            state["trust_reasoning"] = trust_data.get("reasoning", "")
-        except:
-            # Fallback calculation
-            base_score = reel_context['confidence_score'] * 100
-            engagement_boost = min(20, (reel_context['metrics']['likes'] / max(1, reel_context['metrics']['views'])) * 100)
-            state["trust_score"] = min(100, base_score + engagement_boost)
-            state["trust_reasoning"] = "Calculated based on confidence score and engagement metrics"
-        
-        state["messages"].append(
-            AIMessage(content=f"✅ Trust score calculated: {state['trust_score']:.1f}/100")
-        )
-        
-        print(f"✅ [Agent 2] Trust score: {state['trust_score']:.1f}/100")
-        
-    except Exception as e:
-        error_msg = f"Error in Trust Score Agent: {str(e)}"
-        state["errors"].append(error_msg)
-        state["messages"].append(AIMessage(content=f"❌ {error_msg}"))
-        print(f"❌ [Agent 2] {error_msg}")
-    
-    return state
-
-
-# ============================================================================
-# Agent 3: Type-Specific Enrichment
+# Agent 2: Type-Specific Enrichment
 # ============================================================================
 
 def type_specific_enrichment_agent(state: ReelIntelligenceState) -> ReelIntelligenceState:
     """
-    Agent 3: Applies type-specific enrichment based on content type
+    Agent 2: Applies type-specific enrichment based on content type
     """
-    print("🎨 [Agent 3] Type-Specific Enrichment - Starting...")
+    print("🎨 [Agent 2] Type-Specific Enrichment - Starting...")
     
     try:
         content_type = state["content_understanding"].get("content_type", "").lower()
@@ -358,6 +305,23 @@ def type_specific_enrichment_agent(state: ReelIntelligenceState) -> ReelIntellig
         if "travel" in content_type or "place" in content_type:
             # Travel/Place enrichment
             places = state["content_understanding"].get("entities", [])
+
+            # Build concrete Google Maps actions for the UI
+            actions = []
+            for place in places[:3]:
+                if not place:
+                    continue
+                query = quote_plus(str(place))
+                url = f"https://www.google.com/maps/search/?api=1&query={query}"
+                actions.append(
+                    {
+                        "label": f"Open {place} in Google Maps",
+                        "url": url,
+                        "action_type": "maps_search",
+                        "query": place,
+                    }
+                )
+
             enriched_data["enrichments"] = {
                 "type": "place_to_visit",
                 "places": places,
@@ -368,12 +332,46 @@ def type_specific_enrichment_agent(state: ReelIntelligenceState) -> ReelIntellig
                     "Get directions",
                     "Check reviews",
                     "Save to travel list"
-                ]
+                ],
+                # Structured actions the UI can render as clickable buttons
+                "actions": actions,
             }
             
         elif "product" in content_type or "review" in content_type:
             # Product review enrichment
             entities = state["content_understanding"].get("entities", [])
+
+            # Build concrete Amazon search actions for the UI
+            from src.api.product_lens import search_amazon_product  # or wherever you put it
+
+            actions = []
+            for entity in entities[:3]:
+                if not entity:
+                    continue
+                result = None
+                try:
+                    result = search_amazon_product(str(entity))
+                except Exception:
+                    result = None
+
+                if result and result.get("link"):
+                    url = result["link"]
+                    label = f"View {entity} on Amazon"
+                else:
+                    # Fallback to simple search URL
+                    query = quote_plus(str(entity))
+                    url = f"https://www.amazon.com/s?k={query}"
+                    label = f"Search Amazon for {entity}"
+
+                actions.append(
+                    {
+                        "label": label,
+                        "url": url,
+                        "action_type": "shopping_search",
+                        "query": entity,
+                    }
+                )
+
             enriched_data["enrichments"] = {
                 "type": "product_review",
                 "products": entities,
@@ -384,7 +382,9 @@ def type_specific_enrichment_agent(state: ReelIntelligenceState) -> ReelIntellig
                     "Compare prices",
                     "Read more reviews",
                     "Add to wishlist"
-                ]
+                ],
+                # Structured actions the UI can render as clickable buttons
+                "actions": actions,
             }
             
         elif "recipe" in content_type or "food" in content_type:
@@ -453,8 +453,8 @@ def orchestrator_agent(state: ReelIntelligenceState) -> ReelIntelligenceState:
     try:
         reel_intelligence = {
             "metadata": {
-                "document_id": state["document_id"],
-                "custom_id": state["custom_id"],
+                #"document_id": state["document_id"],
+                #"custom_id": state["custom_id"],
                 "generated_at": datetime.now().isoformat(),
                 "agent_version": "1.0.0"
             },
@@ -464,12 +464,6 @@ def orchestrator_agent(state: ReelIntelligenceState) -> ReelIntelligenceState:
             "instagram_metrics": state.get("instagram_metrics"),  # Real-time Instagram data
             
             "content_understanding": state["content_understanding"],
-            
-            "trust_assessment": {
-                "score": state["trust_score"],
-                "reasoning": state["trust_reasoning"],
-                "badge": _get_trust_badge(state["trust_score"])
-            },
             
             "type_specific_intelligence": state["type_specific_data"],
             
@@ -501,18 +495,6 @@ def orchestrator_agent(state: ReelIntelligenceState) -> ReelIntelligenceState:
     return state
 
 
-def _get_trust_badge(score: float) -> str:
-    """Helper to determine trust badge based on score"""
-    if score >= 80:
-        return "🟢 Highly Trusted"
-    elif score >= 60:
-        return "🟡 Moderately Trusted"
-    elif score >= 40:
-        return "🟠 Needs Verification"
-    else:
-        return "🔴 Low Trust"
-
-
 # ============================================================================
 # LangGraph Workflow Definition
 # ============================================================================
@@ -528,15 +510,13 @@ def create_reel_intelligence_graph():
     # Add nodes (agents)
     workflow.add_node("reel_context_builder", reel_context_builder_agent)
     workflow.add_node("content_understanding", gemini_content_understanding_agent)
-    workflow.add_node("trust_score", trust_score_agent)
     workflow.add_node("type_specific", type_specific_enrichment_agent)
     workflow.add_node("orchestrator", orchestrator_agent)
     
     # Define the flow
     workflow.set_entry_point("reel_context_builder")
     workflow.add_edge("reel_context_builder", "content_understanding")
-    workflow.add_edge("content_understanding", "trust_score")
-    workflow.add_edge("trust_score", "type_specific")
+    workflow.add_edge("content_understanding", "type_specific")
     workflow.add_edge("type_specific", "orchestrator")
     workflow.add_edge("orchestrator", END)
     
@@ -574,15 +554,13 @@ def generate_reel_intelligence(
     
     # Initialize state
     initial_state = {
-        "document_id": document_id,
-        "custom_id": custom_id,
+        #"document_id": document_id,
+        #"custom_id": custom_id,
         "main_document": main_document,
         "keyframe_images": keyframe_images,
         "reel_context": None,
-        "instagram_metrics": None,
+        #"instagram_metrics": None,
         "content_understanding": None,
-        "trust_score": None,
-        "trust_reasoning": None,
         "type_specific_data": None,
         "reel_intelligence": None,
         "messages": [],
@@ -636,8 +614,7 @@ if __name__ == "__main__":
     print("\nAgent Flow:")
     print("  [0] Reel Context Builder")
     print("  [1] Gemini Content Understanding")
-    print("  [2] Trust Score Calculator")
-    print("  [3] Type-Specific Enrichment")
-    print("  [4] Orchestrator")
+    print("  [2] Type-Specific Enrichment")
+    print("  [3] Orchestrator")
     print("\nUse generate_reel_intelligence() to process a reel.")
 

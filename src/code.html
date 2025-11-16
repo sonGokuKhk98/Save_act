@@ -216,7 +216,7 @@ AI-generated view based on this keyframe. For products, you can also use Google 
   // Loader that fetches either by reel_id (old flow) or document_id (new Supermemory flow)
   async function loadReelForGenericView() {
     const params = new URLSearchParams(window.location.search);
-    const reelId = params.get('reel_id');
+    //const reelId = params.get('reel_id');
     const documentId = params.get('document_id');
     
     // New flow: document_id from Supermemory search
@@ -269,31 +269,9 @@ AI-generated view based on this keyframe. For products, you can also use Google 
       }
     }
     
-    // Old flow: reel_id from existing reel extraction
-    if (reelId) {
-      try {
-        const resp = await fetch(`/api/reels/${encodeURIComponent(reelId)}`);
-        if (!resp.ok) throw new Error('Failed to fetch reel');
-        const reel = await resp.json();
-
-        const extraction = {
-          ...(reel.extraction || {}),
-          source_url: (reel.extraction && reel.extraction.source_url) || reel.source_url || null,
-        };
-
-        window.__REEL_ID__ = reelId;
-        window.__THUMBNAIL_URL__ = reel.thumbnail_url || null;
-        window.__EXTRACTION__ = {
-          model_name: reel.model_name,
-          extraction,
-        };
-      } catch (e) {
-        console.error('Error loading reel for generic view:', e);
-      }
-    }
     
-    if (!reelId && !documentId) {
-      console.warn('No reel_id or document_id in query string; ensure window.__EXTRACTION__ is set manually.');
+    if (!documentId) {
+      console.warn('No document_id in query string; ensure window.__EXTRACTION__ is set manually.');
     }
   }
 
@@ -461,6 +439,11 @@ AI-generated view based on this keyframe. For products, you can also use Google 
     const additionalContainer = document.getElementById('gx-additional-context');
     if (additionalSection && additionalContainer) {
       additionalSection.classList.remove('hidden');
+      
+      // Preserve keyframes before clearing
+      const raw = extraction.raw_data || {};
+      const supermemoryKeyframes = raw._keyframes || [];
+      
       additionalContainer.innerHTML = '';
 
       const wrapper = document.createElement('div');
@@ -478,6 +461,11 @@ AI-generated view based on this keyframe. For products, you can also use Google 
       wrapper.appendChild(bodyP);
 
       additionalContainer.appendChild(wrapper);
+      
+      // Re-add keyframes section after the reconstruction if available
+      if (supermemoryKeyframes.length > 0) {
+        additionalContainer.appendChild(createSupermemoryKeyframesSection(supermemoryKeyframes));
+      }
 
       // Subtle flash to show something changed.
       flashElement(additionalSection);
@@ -838,10 +826,10 @@ AI-generated view based on this keyframe. For products, you can also use Google 
       }
     }
 
-    // Helper to apply an AI enhancement plan (heading, subtitle,
-    // bullets, suggested actions) returned by the /api/agents/plan
-    // endpoint. This reuses the existing page chrome instead of showing
-    // an alert.
+  // Helper to apply an AI enhancement plan (heading, subtitle,
+  // bullets, suggested actions) returned by the /api/agents/plan or
+  // /api/agents/intelligence-plan endpoint. This reuses the existing
+  // page chrome instead of showing an alert.
     function applyAiPlan(plan) {
       if (!plan) return;
 
@@ -931,54 +919,68 @@ AI-generated view based on this keyframe. For products, you can also use Google 
               : '';
             const descEl = document.createElement('p');
             descEl.className = 'text-white/70 text-[11px] leading-snug';
-            descEl.textContent = desc;
+            // Hide "URL: " prefix from display - it's just for internal use
+            const displayDesc = desc.startsWith('URL: ') ? '' : desc;
+            descEl.textContent = displayDesc;
 
             btn.addEventListener('click', () => {
-              const lower = `${a.label} ${a.description || ''}`.toLowerCase();
-
-              // For product reels, try to map "search" suggestions to a simple
-              // Google search using the AI heading or extraction title.
-              if (
-                category === 'product' &&
-                (lower.includes('search') || lower.includes('find similar') || lower.includes('visually'))
-              ) {
-                const q =
-                  plan.heading ||
-                  extraction.title ||
-                  'products from this reel';
-                const url = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+              // Check if the action has a structured URL in the description
+              // (format: "URL: <url>")
+              const desc = a.description || '';
+              const urlMatch = desc.match(/^URL:\s*(.+)$/);
+              
+              if (urlMatch && urlMatch[1]) {
+                // We have a structured action with a URL - open it directly
+                const url = urlMatch[1].trim();
                 window.open(url, '_blank');
-              } else if (
-                category === 'travel' &&
-                (lower.includes('visit') || lower.includes('explore') || lower.includes('itinerary'))
-              ) {
-                // For travel, copy a compact itinerary summary to clipboard so
-                // the user can paste it into maps/notes.
-                const textLines = [];
-                textLines.push(plan.heading || extraction.title || 'Trip plan');
-                if (plan.subtitle) textLines.push(plan.subtitle);
-                if (Array.isArray(plan.bullets) && plan.bullets.length) {
-                  textLines.push('', 'Highlights:');
-                  plan.bullets.forEach((b) => textLines.push('- ' + b));
-                }
-                const text = textLines.join('\n');
-                if (navigator.clipboard) {
-                  navigator.clipboard.writeText(text);
-                  alert('Itinerary summary copied. Paste into Maps/notes to plan your trip.');
-                } else {
-                  alert('Clipboard not available in this browser.');
-                }
               } else {
-                // Generic fallback: copy the label + description so the user can
-                // paste into search, chat, or notes.
-                const text = a.description
-                  ? `${a.label} – ${a.description}`
-                  : a.label;
-                if (navigator.clipboard) {
-                  navigator.clipboard.writeText(text);
-                  alert('Suggestion copied. Paste into search, chat, or notes.');
+                // Fallback to keyword-based handling for legacy actions
+                const lower = `${a.label} ${desc}`.toLowerCase();
+
+                // For product reels, try to map "search" suggestions to a simple
+                // Google search using the AI heading or extraction title.
+                if (
+                  category === 'product' &&
+                  (lower.includes('search') || lower.includes('find similar') || lower.includes('visually'))
+                ) {
+                  const q =
+                    plan.heading ||
+                    extraction.title ||
+                    'products from this reel';
+                  const url = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+                  window.open(url, '_blank');
+                } else if (
+                  category === 'travel' &&
+                  (lower.includes('visit') || lower.includes('explore') || lower.includes('itinerary'))
+                ) {
+                  // For travel, copy a compact itinerary summary to clipboard so
+                  // the user can paste it into maps/notes.
+                  const textLines = [];
+                  textLines.push(plan.heading || extraction.title || 'Trip plan');
+                  if (plan.subtitle) textLines.push(plan.subtitle);
+                  if (Array.isArray(plan.bullets) && plan.bullets.length) {
+                    textLines.push('', 'Highlights:');
+                    plan.bullets.forEach((b) => textLines.push('- ' + b));
+                  }
+                  const text = textLines.join('\n');
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text);
+                    alert('Itinerary summary copied. Paste into Maps/notes to plan your trip.');
+                  } else {
+                    alert('Clipboard not available in this browser.');
+                  }
                 } else {
-                  alert(text);
+                  // Generic fallback: copy the label + description so the user can
+                  // paste into search, chat, or notes.
+                  const text = desc
+                    ? `${a.label} – ${desc}`
+                    : a.label;
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text);
+                    alert('Suggestion copied. Paste into search, chat, or notes.');
+                  } else {
+                    alert(text);
+                  }
                 }
               }
 
@@ -986,13 +988,14 @@ AI-generated view based on this keyframe. For products, you can also use Google 
               btn.disabled = true;
               btn.classList.add('opacity-60', 'cursor-default');
               if (descEl && desc) {
-                descEl.textContent = desc + ' (applied)';
+                const displayDesc = urlMatch ? desc.replace(/^URL:\s*/, '') : desc;
+                descEl.textContent = displayDesc + ' (applied)';
               }
               flashElement(aiSection);
             });
 
             li.appendChild(btn);
-            if (desc) {
+            if (displayDesc) {
               li.appendChild(descEl);
             }
             aiActions.appendChild(li);
@@ -1074,8 +1077,9 @@ AI-generated view based on this keyframe. For products, you can also use Google 
           if (originalText) originalText.textContent = 'Enhancing...';
 
           const documentId = window.__REEL_ID__;
+          // Prefer the multi-agent intelligence plan when available.
           const resp = await fetch(
-            `/api/agents/plan/${encodeURIComponent(documentId)}`
+            `/api/agents/intelligence-plan/${encodeURIComponent(documentId)}`
           );
           if (!resp.ok) {
             const err = await resp.text();
@@ -1806,7 +1810,7 @@ AI-generated view based on this keyframe. For products, you can also use Google 
             label: 'Start guided workout',
             description: 'Use a timer view based on the extracted exercises.',
             handler: () => {
-              window.location.href = `/extracted-view?reel_id=${encodeURIComponent(
+              window.location.href = `/extracted-view?document_id=${encodeURIComponent(
                 window.__REEL_ID__
               )}`;
             },

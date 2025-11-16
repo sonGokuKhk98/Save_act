@@ -9,20 +9,166 @@ as an "Enhance with AI" experience.
 """
 
 from typing import Any, Dict, List, Optional
+import json
+import re
+import os
 
+import requests
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from datetime import datetime
 
 from src.api.reels import REELS
+from src.services.reel_intelligence_agent import generate_reel_intelligence
+from src.services.gemini_model_helper import _get_gemini_model
 from src.utils.config import Config
-
-try:
-    import google.generativeai as genai
-except ImportError:  # pragma: no cover - handled at runtime via HTTP error
-    genai = None  # type: ignore
 
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
+
+
+async def _ensure_document_cached(document_id: str) -> Dict[str, Any]:
+    """
+    Ensure a document is in the REELS cache. If not found, fetch from Supermemory.
+    
+    Returns the cached reel data.
+    Raises HTTPException if document cannot be found or fetched.
+    """
+    # Check if already cached
+    reel = REELS.get(document_id)
+    if reel:
+        return reel
+    
+    # Not in cache - try to fetch from Supermemory
+    load_dotenv()
+    api_key = os.environ.get("SUPERMEMORY_API_KEY")
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=500, 
+            detail="Document not in cache and SUPERMEMORY_API_KEY not configured"
+        )
+    
+    # Fetch main document
+    document_url = f"https://api.supermemory.ai/v3/documents/{document_id}"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    
+    try:
+        resp = requests.get(document_url, headers=headers, timeout=30)
+        resp.raise_for_status()
+        main_doc = resp.json()
+    except requests.RequestException as e:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Document {document_id} not found in cache or Supermemory: {str(e)}"
+        )
+    
+    # Extract customId from main document metadata
+    metadata = main_doc.get("metadata", {})
+    custom_id = metadata.get("customId")
+    
+    keyframe_images = []
+    # Search for all images with matching customId
+    if custom_id:
+        search_url = "https://api.supermemory.ai/v3/search"
+        search_payload = {
+            "q": "images",
+            "chunkThreshold": 0.5,
+            "filters": {
+                "AND": [
+                    {
+                        "key": "customId",
+                        "value": custom_id,
+                        "negate": False
+                    }
+                ]
+            }
+        }
+        
+        try:
+            search_resp = requests.post(search_url, json=search_payload, headers=headers, timeout=30)
+            search_resp.raise_for_status()
+            search_results = search_resp.json()
+            
+            # Filter only image type results and fetch full document details
+            for item in search_results.get("results", []):
+                if item.get("type") == "image":
+                    keyframe_doc_id = item.get("documentId")
+                    
+                    if keyframe_doc_id:
+                        try:
+                            keyframe_doc_url = f"https://api.supermemory.ai/v3/documents/{keyframe_doc_id}"
+                            keyframe_resp = requests.get(keyframe_doc_url, headers=headers, timeout=30)
+                            keyframe_resp.raise_for_status()
+                            keyframe_doc = keyframe_resp.json()
+                            
+                            image_url = keyframe_doc.get("url", "")
+                            summary = keyframe_doc.get("summary", "")
+                            
+                            keyframe_obj = {
+                                "documentId": keyframe_doc_id,
+                                "url": image_url,
+                                "type": "image",
+                                "metadata": keyframe_doc.get("metadata", {}),
+                                "title": keyframe_doc.get("title", ""),
+                                "summary": summary,
+                                "timestamp": keyframe_doc.get("metadata", {}).get("extracted_at", ""),
+                                "frame_number": keyframe_doc.get("metadata", {}).get("frame_index", "")
+                            }
+                            
+                            keyframe_images.append(keyframe_obj)
+                            
+                        except requests.RequestException:
+                            continue
+                            
+        except requests.RequestException:
+            pass  # Continue without keyframes
+    
+    # Parse content JSON to extract structured data
+    content_data = {}
+    try:
+        content_str = main_doc.get("content", "{}")
+        if content_str:
+            content_data = json.loads(content_str)
+    except (json.JSONDecodeError, Exception):
+        pass
+    
+    # Build extraction object similar to regular reel format
+    extraction = {
+        "title": main_doc.get("title") or metadata.get("title") or metadata.get("topic") or "Untitled",
+        "description": main_doc.get("summary", ""),
+        "category": metadata.get("category") or content_data.get("category") or "generic",
+        "confidence_score": metadata.get("confidence_score") or content_data.get("confidence_score") or 0,
+        "source_url": metadata.get("source_url", ""),
+        "raw_data": {
+            **content_data,
+            "_supermemory_id": document_id,
+            "_custom_id": custom_id,
+            "_keyframes": keyframe_images
+        }
+    }
+    
+    # Store in REELS dictionary with document_id as key
+    REELS[document_id] = {
+        "reel_id": document_id,
+        "document_id": document_id,
+        "category": extraction["category"],
+        "is_generic": True,
+        "model_name": "GenericExtraction",
+        "extraction": extraction,
+        "formatted_summary": None,
+        "created_at": datetime.utcnow().isoformat(),
+        "source_url": extraction["source_url"],
+        "thumbnail_url": keyframe_images[0]["url"] if keyframe_images else metadata.get("thumbnail_url"),
+        "errors": [],
+        "_from_supermemory": True
+    }
+    
+    return REELS[document_id]
 
 
 class ProductAction(BaseModel):
@@ -50,82 +196,17 @@ class ReconstructionPlan(BaseModel):
     """
     AI-driven reconstruction focused on beautifying the leftover / generic
     context into a *single rich section* for the UI.
-
+    
     Instead of trying to rebuild every structured field, this plan:
       - May propose an improved heading/subtitle
       - Returns one primary rich-text block summarizing and organising the
         messy `additional_context` / fallback data into something highly
         readable and actionable.
     """
-
+    
     heading: Optional[str] = None
     subtitle: Optional[str] = None
     rich_text: str
-
-
-def _get_gemini_model(allow_pro: bool = True):
-    """
-    Initialize a Gemini model suitable for agentic enhancement.
-
-    When allow_pro=True we prefer higher quality (2.5 Pro first).
-    When allow_pro=False we skip Pro and fall back to flash variants,
-    which have a more generous free-tier rate limit.
-    """
-    if not Config.GEMINI_API_KEY:
-        raise HTTPException(
-            status_code=500,
-            detail="GEMINI_API_KEY is not configured on the server.",
-        )
-    if genai is None:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "google-generativeai is not installed in this environment. "
-                "Install it with: pip install google-generativeai"
-            ),
-        )
-
-    genai.configure(api_key=Config.GEMINI_API_KEY)
-
-    # Reuse a similar model selection strategy as the main Gemini analyzer,
-    # but prefer the higher-quality 2.5 Pro model for this second-layer,
-    # low-frequency "agentic enhance" pass. Fall back to flash variants if
-    # Pro is unavailable or if we explicitly disable Pro due to quota.
-    pro_first = [
-        "models/gemini-2.5-pro",
-        "models/gemini-2.5-flash",
-        "models/gemini-2.0-flash-001",
-        "models/gemini-2.0-flash",
-    ]
-    flash_only = [
-        "models/gemini-2.5-flash",
-        "models/gemini-2.0-flash-001",
-        "models/gemini-2.0-flash",
-    ]
-    model_names = pro_first if allow_pro else flash_only
-    model = None
-    last_error: Optional[Exception] = None
-    for name in model_names:
-        try:
-            candidate = genai.GenerativeModel(name)
-            # Simple smoke test – a tiny prompt so we fail fast if unsupported.
-            candidate.generate_content("ping")
-            model = candidate
-            break
-        except Exception as exc:  # pragma: no cover - dependent on remote API
-            last_error = exc
-            continue
-
-    if model is None:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "Unable to initialize any Gemini model for agent actions. "
-                f"Tried: {', '.join(model_names)}. Last error: {last_error}"
-            ),
-        )
-
-    return model
 
 
 def _build_system_prompt(category: str) -> str:
@@ -180,6 +261,9 @@ def _build_user_prompt(extraction: Dict[str, Any], raw_data: Dict[str, Any]) -> 
         f"{extraction}\n\n"
         "Here is the raw_data JSON (may contain additional context or items):\n"
         f"{raw_data}\n\n"
+        "IMPORTANT: Respond with ONLY valid JSON. Ensure all strings are properly escaped.\n"
+        "Use \\n for line breaks within strings, and escape any quotes with \\\".\n"
+        "\n"
         "Respond strictly as compact JSON with the following shape:\n"
         "{\n"
         '  "heading": "short catchy heading, 3-8 words, no emojis",\n'
@@ -189,7 +273,7 @@ def _build_user_prompt(extraction: Dict[str, Any], raw_data: Dict[str, Any]) -> 
         '    {"label": "Button label, <= 32 chars", "description": "What this action helps the user do."}\n'
         "  ]\n"
         "}\n"
-        "Do not add any extra keys, comments, or explanations outside this JSON object."
+        "Do not add any extra keys, comments, trailing commas, or explanations outside this JSON object."
     )
 
 
@@ -218,13 +302,16 @@ def _build_reconstruct_prompt(extraction: Dict[str, Any], raw_data: Dict[str, An
         f"{extraction}\n\n"
         "Here is the current raw_data JSON (including additional_context):\n"
         f"{raw_data}\n\n"
+        "IMPORTANT: Respond with ONLY valid JSON. Ensure all strings are properly escaped.\n"
+        "Use \\n for line breaks within strings, and escape any quotes with \\\".\n"
+        "\n"
         "Respond strictly as compact JSON with the following shape:\n"
         "{\n"
         '  "heading": "optional improved heading, or null",\n'
         '  "subtitle": "optional improved one-line summary, or null",\n'
-        '  "rich_text": "a single rich, multi-paragraph block of text. You MAY use simple Markdown like bullet lists (\"- \") and line breaks, but no HTML and no backticks."\n'
+        '  "rich_text": "a single rich, multi-paragraph block of text. Use \\n for line breaks. You MAY use simple Markdown like bullet lists but ensure all text is properly escaped for JSON."\n'
         "}\n"
-        "Do not add any extra keys, comments, or explanations outside this JSON object.\n"
+        "Do not add any extra keys, comments, trailing commas, or explanations outside this JSON object.\n"
     )
 
 
@@ -233,9 +320,6 @@ def _call_gemini_for_plan(
     raw_data: Dict[str, Any],
 ) -> ProductEnhancementPlan:
     """Shared helper to call Gemini and parse the enhancement plan."""
-
-    import json
-    import re
 
     category = (extraction.get("category") or "").lower()
     system_prompt = _build_system_prompt(category)
@@ -260,17 +344,26 @@ def _call_gemini_for_plan(
 
     text = resp.text or ""
 
-    # Try to locate the JSON object within the model response.
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        raise HTTPException(
-            status_code=502,
-            detail="Gemini did not return a JSON object for the enhancement plan.",
-        )
+    # Try to extract JSON from code blocks first (```json ... ```)
+    json_block_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if json_block_match:
+        json_str = json_block_match.group(1)
+    else:
+        # Fall back to finding raw JSON object
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if not match:
+            raise HTTPException(
+                status_code=502,
+                detail="Gemini did not return a JSON object for the enhancement plan.",
+            )
+        json_str = match.group(0)
 
     try:
-        data = json.loads(match.group(0))
+        data = json.loads(json_str)
     except json.JSONDecodeError as exc:
+        # Log the problematic JSON for debugging
+        print(f"Failed to parse enhancement JSON from Gemini. Raw response:\n{text}")
+        print(f"Extracted JSON string:\n{json_str}")
         raise HTTPException(
             status_code=502,
             detail=f"Failed to parse enhancement JSON from Gemini: {exc}",
@@ -312,9 +405,8 @@ async def product_enhancement_plan(document_id: str) -> ProductEnhancementPlan:
     works for all categories. This endpoint simply checks that the reel
     is a product and then delegates to the generic planner.
     """
-    reel: Optional[Dict[str, Any]] = REELS.get(document_id)
-    if not reel:
-        raise HTTPException(status_code=404, detail="Unknown document_id")
+    # Ensure document is cached (fetch from Supermemory if needed)
+    reel = await _ensure_document_cached(document_id)
 
     extraction: Dict[str, Any] = reel.get("extraction") or {}
     category = (extraction.get("category") or "").lower()
@@ -338,14 +430,131 @@ async def generic_enhancement_plan(document_id: str) -> ProductEnhancementPlan:
     reel's category to guide the system prompt, and returns a concise
     heading, subtitle, highlights and suggested actions.
     """
-    reel: Optional[Dict[str, Any]] = REELS.get(document_id)
-    if not reel:
-        raise HTTPException(status_code=404, detail="Unknown document_id")
+    # Ensure document is cached (fetch from Supermemory if needed)
+    reel = await _ensure_document_cached(document_id)
 
     extraction: Dict[str, Any] = reel.get("extraction") or {}
     raw_data = extraction.get("raw_data") or extraction
 
     return _call_gemini_for_plan(extraction, raw_data)
+
+
+@router.get("/intelligence-plan/{document_id}", response_model=ProductEnhancementPlan)
+async def intelligence_enhancement_plan(document_id: str) -> ProductEnhancementPlan:
+    """
+    Enhancement plan powered by the multi-agent Reel Intelligence flow.
+
+    This reuses the same compact UI-friendly shape as ProductEnhancementPlan
+    so existing front-end code (e.g. `gx-ai-plan-section` in `code.html`)
+    can render heading, subtitle, bullets, and suggested actions.
+    """
+    # Ensure document is cached (fetch from Supermemory if needed)
+    reel = await _ensure_document_cached(document_id)
+
+    extraction: Dict[str, Any] = reel.get("extraction") or {}
+    raw_data: Dict[str, Any] = extraction.get("raw_data") or extraction
+
+    # Synthesize a main_document + keyframes compatible with the
+    # reel_intelligence_agent interface using stored Supermemory data.
+    main_document: Dict[str, Any] = {
+        "documentId": document_id,
+        "title": extraction.get("title") or raw_data.get("title"),
+        "summary": extraction.get("description") or raw_data.get("summary"),
+        # Pack raw_data as the content payload expected by the agent.
+        "content": json.dumps(raw_data),
+        "metadata": {
+            "source_url": extraction.get("source_url") or raw_data.get("source_url"),
+            "extracted_at": reel.get("created_at"),
+        },
+    }
+    keyframe_images: List[Dict[str, Any]] = raw_data.get("_keyframes") or []
+    custom_id = raw_data.get("_custom_id") or ""
+
+    # Run the multi-agent intelligence flow.
+    intelligence = generate_reel_intelligence(
+        document_id=document_id,
+        custom_id=custom_id,
+        main_document=main_document,
+        keyframe_images=keyframe_images,
+    )
+
+    ctx: Dict[str, Any] = intelligence.get("reel_context") or {}
+    understanding: Dict[str, Any] = intelligence.get("content_understanding") or {}
+    type_specific: Dict[str, Any] = intelligence.get("type_specific_intelligence") or {}
+    enrichments: Dict[str, Any] = type_specific.get("enrichments") or {}
+
+    # Derive heading/subtitle from intelligence first, then fall back.
+    heading = ctx.get("title") or extraction.get("title") or "Highlights"
+    subtitle = (
+        understanding.get("summary")
+        or extraction.get("description")
+        or main_document.get("summary")
+    )
+
+    bullets: List[str] = []
+    topics = understanding.get("topics") or []
+    entities = understanding.get("entities") or []
+    if topics:
+        bullets.append("Topics: " + ", ".join(map(str, topics[:3])))
+    if entities:
+        bullets.append("Key entities: " + ", ".join(map(str, entities[:3])))
+
+    # Optionally add one bullet from type-specific enrichments if available.
+    if enrichments.get("type") == "place_to_visit":
+        places = enrichments.get("places") or []
+        if places:
+            bullets.append("Places to explore: " + ", ".join(map(str, places[:3])))
+    elif enrichments.get("type") == "product_review":
+        products = enrichments.get("products") or []
+        if products:
+            bullets.append("Products highlighted: " + ", ".join(map(str, products[:3])))
+
+    # Map suggested actions from content understanding into ProductAction objects.
+    # Prefer structured actions from enrichments (which have URLs), fall back to
+    # generic suggested_actions from content understanding.
+    structured_actions = enrichments.get("actions") or []
+    suggested_raw = understanding.get("suggested_actions") or []
+    if isinstance(suggested_raw, str):
+        suggested_raw = [suggested_raw]
+
+    actions: List[ProductAction] = []
+    
+    # First, add structured actions with URLs from enrichments
+    for action in structured_actions:
+        if not isinstance(action, dict):
+            continue
+        label = action.get("label")
+        url = action.get("url")
+        if not label:
+            continue
+        # Store URL in description field so the frontend can access it
+        # Format: "URL: <url>" so frontend can detect and extract it
+        description = f"URL: {url}" if url else None
+        actions.append(
+            ProductAction(
+                label=str(label),
+                description=description,
+            )
+        )
+    
+    # Then add generic suggested actions if we don't have enough structured ones
+    if len(actions) < 3:
+        for label in suggested_raw:
+            if not label:
+                continue
+            actions.append(
+                ProductAction(
+                    label=str(label),
+                    description=None,
+                )
+            )
+
+    return ProductEnhancementPlan(
+        heading=heading,
+        subtitle=subtitle,
+        bullets=bullets,
+        suggested_actions=actions,
+    )
 
 
 def _call_gemini_for_reconstruct(
@@ -379,17 +588,27 @@ def _call_gemini_for_reconstruct(
             ) from exc
 
     text = resp.text or ""
-
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        raise HTTPException(
-            status_code=502,
-            detail="Gemini did not return a JSON object for the reconstruction plan.",
-        )
+    
+    # Try to extract JSON from code blocks first (```json ... ```)
+    json_block_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if json_block_match:
+        json_str = json_block_match.group(1)
+    else:
+        # Fall back to finding raw JSON object
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if not match:
+            raise HTTPException(
+                status_code=502,
+                detail="Gemini did not return a JSON object for the reconstruction plan.",
+            )
+        json_str = match.group(0)
 
     try:
-        data = json.loads(match.group(0))
+        data = json.loads(json_str)
     except json.JSONDecodeError as exc:
+        # Log the problematic JSON for debugging
+        print(f"Failed to parse JSON from Gemini. Raw response:\n{text}")
+        print(f"Extracted JSON string:\n{json_str}")
         raise HTTPException(
             status_code=502,
             detail=f"Failed to parse reconstruction JSON from Gemini: {exc}",
@@ -422,9 +641,8 @@ async def reconstruct_reel(document_id: str) -> ReconstructionPlan:
     re-render all sections (ingredients/items, details, steps, additional
     context) based on the new structure.
     """
-    reel: Optional[Dict[str, Any]] = REELS.get(document_id)
-    if not reel:
-        raise HTTPException(status_code=404, detail="Unknown document_id")
+    # Ensure document is cached (fetch from Supermemory if needed)
+    reel = await _ensure_document_cached(document_id)
 
     extraction: Dict[str, Any] = reel.get("extraction") or {}
     raw_data = extraction.get("raw_data") or extraction

@@ -413,7 +413,7 @@ async def get_document_details(document_id: str, custom_id: Optional[str] = None
     
     # Store in REELS dictionary with document_id as key
     REELS[document_id] = {
-        "reel_id": document_id,  # For backwards compatibility
+        #"reel_id": document_id,  # For backwards compatibility
         "document_id": document_id,
         "category": extraction["category"],
         "is_generic": True,
