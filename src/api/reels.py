@@ -213,9 +213,10 @@ async def search_reels(payload: SearchRequest):
     
     search_payload = {
         "q": payload.query,
-        "chunkThreshold": 0.5,
-        "includeFullDocs": True,
-        "limit": payload.limit,
+        "chunkThreshold": 0.6,
+        #"type": "text",
+        #"includeFullDocs": True,
+        "limit": payload.limit
     }
     
     headers = {
@@ -227,7 +228,6 @@ async def search_reels(payload: SearchRequest):
         response = requests.post(url, json=search_payload, headers=headers)
         response.raise_for_status()
         data = response.json()
-        
         # Extract unique results (filter text type and remove duplicates)
         seen_ids = set()
         results = []
@@ -255,13 +255,13 @@ async def search_reels(payload: SearchRequest):
             # Create search result
             result = SearchResult(
                 title=title,
-                thumbnail_url=thumbnail_url,
+                thumbnail_url=source_url,
                 reel_id=doc_id,
                 document_id=doc_id,
                 score=item.get("score", 0.0)
             )
             results.append(result)
-            
+            print(f"result: {result}")
             # Stop if we've reached the limit
             if len(results) >= payload.limit:
                 break

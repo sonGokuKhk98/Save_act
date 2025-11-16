@@ -49,23 +49,16 @@ import requests
 url = "https://api.supermemory.ai/v3/search"
 
 payload = {
-    "q": "give me foot care routine",
-    "chunkThreshold": 0.5,
-    #"includeFullDocs":True,
-    #"filters": {
-    #    "AND": [
-    #        {
-     #           "key": "customId",  # Note: In your code it's stored as "customId"
-    #            "value": "extraction_7b488f913da5",  # Replace with your actual customId
-    #            "negate": False
-    #        }
-    #    ]
-    #},
+    "q": "giev me reels about foot care routine",
+    "threshold": 0.5,
+    #"type": "text",
+    
+
 
 }
 
 headers = {
-    "Authorization": "Bearer sm_8PFFHrpK7x9oKvNapkispJ_AjAIQpXivxuGJOsEiTCIDVegSpzdlbVbWwLOdLoRidQskOPsXayOoXsEEsObNCRy",
+    "Authorization": f"Bearer {os.environ.get('SUPERMEMORY_API_KEY')}",
     "Content-Type": "application/json"
 }
 

@@ -70,9 +70,15 @@ class SupermemeoryClient:
             import httpx
             keyframes = getattr(extraction, "keyframes", None)
             extraction.keyframes = []
+            _dump = extraction.model_dump(mode="json") # remove the non emebddding fields
+            _dump.pop("extracted_at", None)
+            _dump.pop("confidence_score", None)
+            #_dump.pop("keyframes", None)
             payload = {
                 #"title": extraction.title,
-                "content": json.dumps(extraction.model_dump(mode="json")),
+                # Remove 'extracted_at' and 'confidence_score' before serializing to JSON content
+                
+                "content": json.dumps(_dump),
                 "container_tag": extraction.category,
                 #"container_tags": self._generate_tags(extraction),
                 "metadata": {
