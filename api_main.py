@@ -10,7 +10,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from src.api import reels as reels_api
 from src.api import product_lens as product_lens_api
@@ -35,6 +35,14 @@ app.mount(
     StaticFiles(directory=str(Config.TEMP_STORAGE_PATH)),
     name="temp",
 )
+
+
+@app.get("/", include_in_schema=False)
+async def root_redirect():
+    """
+    Redirect the bare root URL to the main Actify reel input screen.
+    """
+    return RedirectResponse(url="/reel-input")
 
 
 def _load_html(relative_path: str) -> str:
