@@ -214,7 +214,7 @@ async def search_reels(payload: SearchRequest):
     }
     
     try:
-        response = requests.post(url, json=search_payload, headers=headers)
+        response = requests.post(url, json=search_payload, headers=headers, timeout=30)
         response.raise_for_status()
         data = response.json()
         # Extract unique results (filter text type and remove duplicates)
@@ -235,12 +235,60 @@ async def search_reels(payload: SearchRequest):
             seen_ids.add(doc_id)
             
             # Extract metadata
-            metadata = item.get("metadata", {})
+            metadata = item.get("metadata", {}) or {}
             title = item.get("title") or metadata.get("topic") or "Untitled"
             thumbnail_url = metadata.get("thumbnail_url") or metadata.get("image_url")
             category = metadata.get("category")
             summary = item.get("summary") or metadata.get("summary")
             custom_id = metadata.get("customId")
+            
+            # If we don't already have a thumbnail, try to find one by looking up
+            # an image document that shares the same customId (keyframes stored
+            # alongside the text document). This mirrors the behavior of /recent
+            # so that search results also show cover images.
+            if not thumbnail_url and custom_id:
+                try:
+                    img_search_payload = {
+                        "q": "images",
+                        "chunkThreshold": 0.5,
+                        "filters": {
+                            "AND": [
+                                {
+                                    "key": "customId",
+                                    "value": custom_id,
+                                    "negate": False,
+                                }
+                            ]
+                        },
+                        "limit": 1,
+                    }
+                    img_resp = requests.post(
+                        url, json=img_search_payload, headers=headers, timeout=30
+                    )
+                    img_resp.raise_for_status()
+                    img_data = img_resp.json()
+                    for img_item in img_data.get("results", []):
+                        if img_item.get("type") != "image":
+                            continue
+                        img_doc_id = img_item.get("documentId")
+                        if img_doc_id:
+                            try:
+                                doc_url = f"https://api.supermemory.ai/v3/documents/{img_doc_id}"
+                                doc_resp = requests.get(doc_url, headers=headers, timeout=30)
+                                doc_resp.raise_for_status()
+                                img_doc = doc_resp.json()
+                                thumbnail_url = (
+                                    img_doc.get("url")
+                                    or img_doc.get("metadata", {}).get("thumbnail_url")
+                                    or img_doc.get("metadata", {}).get("image_url")
+                                )
+                                if thumbnail_url:
+                                    break
+                            except requests.RequestException:
+                                continue
+                except requests.RequestException:
+                    # If thumbnail enrichment fails, we still return the text result.
+                    pass
             
             # Create search result
             result = SearchResult(
@@ -558,6 +606,40 @@ async def get_document_details(document_id: str, custom_id: Optional[str] = None
         keyframes=keyframe_images,
         custom_id=custom_id
     )
+
+
+@router.delete("/document/{document_id}")
+async def delete_document(document_id: str):
+    """
+    Delete a document from Supermemory by document ID.
+
+    Used by the browse view to permanently remove a saved reel.
+    """
+    load_dotenv()
+    api_key = os.environ.get("SUPERMEMORY_API_KEY")
+
+    if not api_key:
+        raise HTTPException(status_code=500, detail="SUPERMEMORY_API_KEY not configured")
+
+    document_url = f"https://api.supermemory.ai/v3/documents/{document_id}"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        resp = requests.delete(document_url, headers=headers, timeout=30)
+        if resp.status_code == 404:
+            raise HTTPException(status_code=404, detail="Document not found in Supermemory")
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete document: {str(e)}")
+
+    # Best-effort removal from local cache if we used document_id as key.
+    if document_id in REELS:
+        REELS.pop(document_id, None)
+
+    return {"status": "deleted", "document_id": document_id}
 
 
 @router.get("/{reel_id}")

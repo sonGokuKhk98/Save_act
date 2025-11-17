@@ -58,7 +58,17 @@
             Organized by category, with a quick reminder of why you saved each reel.
           </p>
         </div>
-        <div class="size-10 shrink-0"></div>
+        <div class="size-10 shrink-0 flex items-center justify-end">
+          <button
+            id="browse-refresh-btn"
+            type="button"
+            class="inline-flex items-center justify-center gap-1 rounded-full border border-zinc-300/70 dark:border-zinc-600 px-3 py-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 bg-zinc-100/60 dark:bg-zinc-800/60 hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80 transition"
+          >
+            <span id="browse-refresh-icon" class="material-symbols-outlined text-[14px]">
+              refresh
+            </span>
+          </button>
+        </div>
       </header>
 
       <main class="flex-1 px-4 py-3">
@@ -111,6 +121,19 @@
         return div.innerHTML;
       }
 
+      function getCachedBrowseReels() {
+        try {
+          const raw = localStorage.getItem("gx_browse_reels");
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          if (!parsed || !Array.isArray(parsed.results)) return null;
+          return parsed;
+        } catch (e) {
+          console.warn("Failed to read browse reels cache", e);
+          return null;
+        }
+      }
+
       function createCategorySection(categoryKey, items) {
         const wrapper = document.createElement("section");
         wrapper.className = "flex flex-col gap-3";
@@ -148,12 +171,28 @@
           const hasThumb = Boolean(thumb);
           const imageSection = hasThumb
             ? `
-          <div class="aspect-[3/4] w-full overflow-hidden">
+          <div class="aspect-[3/4] w-full overflow-hidden relative">
             <img src="${thumb}" alt="${title}" class="h-full w-full object-cover" />
+            <button
+              type="button"
+              class="browse-delete-btn absolute right-2 top-2 flex items-center justify-center rounded-full bg-black/70 hover:bg-black/90 text-white p-1"
+              data-doc-id="${id || ""}"
+              title="Delete this reel from Supermemory"
+            >
+              <span class="material-symbols-outlined text-[16px]">delete</span>
+            </button>
           </div>`
             : `
-          <div class="aspect-[3/4] w-full overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-zinc-950 flex items-center justify-center">
+          <div class="aspect-[3/4] w-full overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-zinc-950 flex items-center justify-center relative">
             <span class="material-symbols-outlined text-zinc-500" style="font-size: 40px;">movie</span>
+            <button
+              type="button"
+              class="browse-delete-btn absolute right-2 top-2 flex items-center justify-center rounded-full bg-black/70 hover:bg-black/90 text-white p-1"
+              data-doc-id="${id || ""}"
+              title="Delete this reel from Supermemory"
+            >
+              <span class="material-symbols-outlined text-[16px]">delete</span>
+            </button>
           </div>`;
 
           card.innerHTML = `
@@ -172,6 +211,61 @@
             });
           }
 
+          // Wire up delete button inside the card
+          const deleteBtn = card.querySelector(".browse-delete-btn");
+          if (deleteBtn && id) {
+            deleteBtn.addEventListener("click", async (e) => {
+              e.stopPropagation();
+              const confirmed = window.confirm(
+                "Delete this reel from Supermemory? This cannot be undone."
+              );
+              if (!confirmed) return;
+
+              try {
+                const resp = await fetch(
+                  `/api/reels/document/${encodeURIComponent(id)}`,
+                  { method: "DELETE" }
+                );
+                if (!resp.ok) {
+                  const errText = await resp.text();
+                  alert("Failed to delete reel: " + errText.slice(0, 200));
+                  return;
+                }
+
+                // Remove card from UI
+                card.remove();
+                // If this was the last card in the grid, remove the entire section
+                if (!grid.querySelector("button")) {
+                  wrapper.remove();
+                }
+
+                // Best-effort: also remove from recent reels cache used on reel-input
+                try {
+                  const raw = localStorage.getItem("gx_recent_reels");
+                  if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && Array.isArray(parsed.results)) {
+                      parsed.results = parsed.results.filter(
+                        (r) =>
+                          r.document_id !== id &&
+                          r.reel_id !== id
+                      );
+                      localStorage.setItem(
+                        "gx_recent_reels",
+                        JSON.stringify(parsed)
+                      );
+                    }
+                  }
+                } catch (e) {
+                  console.warn("Failed to update recent reels cache after delete", e);
+                }
+              } catch (err) {
+                console.error(err);
+                alert("Error contacting delete API");
+              }
+            });
+          }
+
           grid.appendChild(card);
         });
 
@@ -179,10 +273,55 @@
         return wrapper;
       }
 
-      async function loadBrowseData() {
+      function renderBrowseResults(results) {
+        const content = document.getElementById("browse-content");
         const loading = document.getElementById("browse-loading");
         const empty = document.getElementById("browse-empty");
-        const content = document.getElementById("browse-content");
+
+        if (!results || !results.length) {
+          if (loading) loading.classList.add("hidden");
+          if (empty) empty.classList.remove("hidden");
+          return;
+        }
+
+        const grouped = {};
+        results.forEach((r) => {
+          const key = (r.category || "generic").toLowerCase();
+          if (!grouped[key]) grouped[key] = [];
+          grouped[key].push(r);
+        });
+
+        if (content) {
+          content.innerHTML = "";
+          CATEGORY_ORDER.forEach((key) => {
+            if (grouped[key] && grouped[key].length) {
+              content.appendChild(createCategorySection(key, grouped[key]));
+            }
+          });
+          // Any categories not in the preferred order
+          Object.keys(grouped).forEach((key) => {
+            if (!CATEGORY_ORDER.includes(key)) {
+              content.appendChild(createCategorySection(key, grouped[key]));
+            }
+          });
+          content.classList.remove("hidden");
+        }
+
+        if (loading) loading.classList.add("hidden");
+        if (empty) empty.classList.add("hidden");
+      }
+
+      async function loadBrowseData(showGlobalLoading = true) {
+        const loading = document.getElementById("browse-loading");
+        const empty = document.getElementById("browse-empty");
+        const refreshIcon = document.getElementById("browse-refresh-icon");
+
+        if (showGlobalLoading && loading) {
+          loading.classList.remove("hidden");
+        }
+        if (refreshIcon) {
+          refreshIcon.classList.add("animate-spin");
+        }
 
         try {
           const resp = await fetch("/api/reels/recent?limit=50");
@@ -193,34 +332,14 @@
           const data = await resp.json();
           const results = Array.isArray(data.results) ? data.results : [];
 
-          if (!results.length) {
-            if (loading) loading.classList.add("hidden");
-            if (empty) empty.classList.remove("hidden");
-            return;
+          // Persist latest category-browsable reels so we can render instantly next time.
+          try {
+            localStorage.setItem("gx_browse_reels", JSON.stringify({ results }));
+          } catch (e) {
+            console.warn("Failed to cache browse reels", e);
           }
 
-          const grouped = {};
-          results.forEach((r) => {
-            const key = (r.category || "generic").toLowerCase();
-            if (!grouped[key]) grouped[key] = [];
-            grouped[key].push(r);
-          });
-
-          if (content) {
-            content.innerHTML = "";
-            CATEGORY_ORDER.forEach((key) => {
-              if (grouped[key] && grouped[key].length) {
-                content.appendChild(createCategorySection(key, grouped[key]));
-              }
-            });
-            // Any categories not in the preferred order
-            Object.keys(grouped).forEach((key) => {
-              if (!CATEGORY_ORDER.includes(key)) {
-                content.appendChild(createCategorySection(key, grouped[key]));
-              }
-            });
-            content.classList.remove("hidden");
-          }
+          renderBrowseResults(results);
         } catch (e) {
           console.error(e);
           if (loading) loading.classList.add("hidden");
@@ -229,12 +348,30 @@
             empty.querySelector("p.text-zinc-500")?.classList.add("hidden");
           }
         } finally {
-          if (loading) loading.classList.add("hidden");
+          if (refreshIcon) {
+            refreshIcon.classList.remove("animate-spin");
+          }
         }
       }
 
       window.addEventListener("DOMContentLoaded", () => {
-        loadBrowseData();
+        const cached = getCachedBrowseReels();
+        const loading = document.getElementById("browse-loading");
+
+        if (cached && cached.results && cached.results.length) {
+          if (loading) loading.classList.add("hidden");
+          renderBrowseResults(cached.results);
+        } else {
+          loadBrowseData(true);
+        }
+
+        const refreshBtn = document.getElementById("browse-refresh-btn");
+        if (refreshBtn) {
+          refreshBtn.addEventListener("click", () => {
+            // Background refresh: keep current content visible, just spin icon.
+            loadBrowseData(false);
+          });
+        }
       });
     </script>
   </body>

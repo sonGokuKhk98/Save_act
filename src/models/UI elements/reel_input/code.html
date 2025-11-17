@@ -34,6 +34,24 @@
       min-height: max(884px, 100dvh);
     }
   </style>
+  <style>
+    @keyframes gx-search-glow {
+      0% {
+        box-shadow: 0 0 0 0 rgba(13, 147, 242, 0.0);
+      }
+      50% {
+        box-shadow: 0 0 24px 3px rgba(13, 147, 242, 0.40);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(13, 147, 242, 0.0);
+      }
+    }
+
+    .gx-search-glow {
+      animation: gx-search-glow 2.4s ease-in-out infinite;
+      border-radius: 1rem;
+    }
+  </style>
 <style>
     body {
       min-height: max(884px, 100dvh);
@@ -42,6 +60,25 @@
 <style>
     body {
       min-height: max(884px, 100dvh);
+    }
+
+    @keyframes gx-tagline-glow {
+      0% {
+        text-shadow: 0 0 0 rgba(59, 130, 246, 0.0);
+        opacity: 0.8;
+      }
+      50% {
+        text-shadow: 0 0 18px rgba(59, 130, 246, 0.7);
+        opacity: 1;
+      }
+      100% {
+        text-shadow: 0 0 0 rgba(59, 130, 246, 0.0);
+        opacity: 0.8;
+      }
+    }
+
+    .gx-tagline-glow {
+      animation: gx-tagline-glow 2.8s ease-in-out infinite;
     }
   </style>
   </head>
@@ -55,10 +92,10 @@
   </div>
   <div class="flex flex-col items-center flex-1 min-w-0">
     <h1 class="text-zinc-800 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">
-      Reel Input
+      Actify
     </h1>
-    <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-      Search, import, and browse your AI-structured reels.
+    <p class="text-xs text-zinc-400 dark:text-zinc-300 mt-0.5 gx-tagline-glow">
+      Search · Summarize · Act
     </p>
   </div>
   <div class="flex w-12 items-center justify-end">
@@ -75,7 +112,7 @@
 </header>
 <main class="flex flex-col flex-1 px-4 py-3">
 <div class="flex flex-col pt-4">
-  <label class="flex flex-col w-full max-w-[480px] mx-auto">
+  <label class="flex flex-col w-full max-w-[480px] mx-auto gx-search-glow">
     <p class="text-zinc-800 dark:text-white text-base font-medium leading-normal pb-2 sr-only">Search Reels</p>
     <div class="relative">
         <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" style="font-size: 24px;">
@@ -88,8 +125,25 @@
     </div>
 </label>
 <!-- Reel suggestions / recent reels grid -->
-<div class="w-full max-w-[480px] mt-4 mx-auto" id="reel-suggestions">
-  <!-- Cards will be populated here -->
+<div class="w-full max-w-[480px] mt-4 mx-auto">
+  <div class="flex items-center justify-between mb-2">
+    <p class="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 tracking-[0.04em] uppercase">
+      Recently saved reels
+    </p>
+    <button
+      id="recent-refresh-btn"
+      type="button"
+      class="inline-flex items-center gap-1 rounded-full border border-zinc-300/70 dark:border-zinc-600 px-3 py-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 bg-zinc-100/60 dark:bg-zinc-800/60 hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80 transition"
+    >
+      <span class="material-symbols-outlined text-[14px]">
+        refresh
+      </span>
+      <span>Refresh</span>
+    </button>
+  </div>
+  <div id="reel-suggestions">
+    <!-- Cards will be populated here -->
+  </div>
 </div>
 
 </div>
@@ -267,9 +321,31 @@
     }
   }
 
-  async function loadRecentReels() {
+  function getCachedRecentReels() {
+    try {
+      const raw = localStorage.getItem('gx_recent_reels');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.results)) return null;
+      return parsed;
+    } catch (e) {
+      console.warn('Failed to read recent reels cache', e);
+      return null;
+    }
+  }
+
+  async function loadRecentReels(force = false) {
     const suggestionsContainer = document.getElementById('reel-suggestions');
     if (!suggestionsContainer) return;
+
+    // If not forcing a refresh, try to use cached recent reels first.
+    if (!force) {
+      const cached = getCachedRecentReels();
+      if (cached && cached.results && cached.results.length) {
+        renderReelCards(cached.results);
+        return;
+      }
+    }
 
     suggestionsContainer.innerHTML = `
       <div class="flex items-center justify-center p-8">
@@ -284,7 +360,15 @@
         throw new Error(err.detail || 'Failed to load recent reels');
       }
       const data = await resp.json();
-      renderReelCards(data.results || []);
+      const results = data.results || [];
+      renderReelCards(results);
+
+      // Persist the latest recent reels so we do not have to refetch on every load.
+      try {
+        localStorage.setItem('gx_recent_reels', JSON.stringify({ results }));
+      } catch (e) {
+        console.warn('Failed to cache recent reels', e);
+      }
     } catch (e) {
       console.error(e);
       suggestionsContainer.innerHTML = `
@@ -341,6 +425,7 @@
     const searchInput = document.getElementById('search-input');
     const processBtn = document.getElementById('process-reel-btn');
     const browseBtn = document.getElementById('browse-reels-button');
+    const recentRefreshBtn = document.getElementById('recent-refresh-btn');
     
     if (searchBtn) {
       searchBtn.addEventListener('click', performSearch);
@@ -365,8 +450,14 @@
       });
     }
 
+    if (recentRefreshBtn) {
+      recentRefreshBtn.addEventListener('click', () => {
+        loadRecentReels(true);
+      });
+    }
+
     // On first load, show the most recent reels saved in Supermemory.
-    loadRecentReels();
+    loadRecentReels(false);
   });
 </script>
 
