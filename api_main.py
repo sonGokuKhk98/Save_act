@@ -30,6 +30,9 @@ app.include_router(agent_actions_api.router)
 # expose thumbnails for features like Google Lens product search.
 from src.utils.config import Config  # local import to avoid circulars at top-level
 
+# Ensure temp_storage directory exists before mounting
+Config.ensure_temp_storage()
+
 app.mount(
     "/temp",
     StaticFiles(directory=str(Config.TEMP_STORAGE_PATH)),
