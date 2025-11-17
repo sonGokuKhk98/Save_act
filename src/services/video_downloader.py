@@ -50,6 +50,7 @@ class VideoDownloader:
                 'quiet': False,  # Show progress
                 'no_warnings': False,
                 'extract_flat': False,
+                'cookiesfrombrowser': ('chrome',),  # Use cookies from Chrome to bypass Instagram auth
             }
             
             # Download video
