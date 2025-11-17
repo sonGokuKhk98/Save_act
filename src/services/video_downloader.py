@@ -49,8 +49,7 @@ class VideoDownloader:
                 'outtmpl': str(temp_path.with_suffix('')),  # Output filename (without extension)
                 'quiet': False,  # Show progress
                 'no_warnings': False,
-                'extract_flat': False,
-                'cookiesfrombrowser': ('chrome',),  # Use cookies from Chrome to bypass Instagram auth
+                'extract_flat': False
             }
             
             # Download video
