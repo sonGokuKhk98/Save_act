@@ -1,15 +1,35 @@
 {
-    "redirects": [
-      {
-        "source": "/",
-        "destination": "/reel-input.html",
-        "permanent": false
-      }
-    ],
-    "rewrites": [
-      {
-        "source": "/api/:path*",
-        "destination": "https://save-78qa7hfed-actify-fe98be8f.vercel.app/api/:path*"
-      }
-    ]
-  }
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/reel-input",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/reel-input",
+      "destination": "/reel-input.html"
+    },
+    {
+      "source": "/processing-status",
+      "destination": "/processing-status.html"
+    },
+    {
+      "source": "/generic-view",
+      "destination": "/generic-view.html"
+    },
+    {
+      "source": "/browse-reels",
+      "destination": "/browse-reels.html"
+    },
+    {
+      "source": "/extracted-view",
+      "destination": "/extracted-view.html"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://save-act-1.onrender.com/api/:path*"
+    }
+  ]
+}
