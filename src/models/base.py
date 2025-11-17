@@ -31,6 +31,7 @@ class BaseExtraction(BaseModel):
         default_factory=datetime.now,
         description="Timestamp when extraction was performed"
     )
+    keyframes: Optional[list] = Field(None, description="List of keyframe image paths")
     confidence_score: float = Field(
         default=0.0,
         ge=0.0,
@@ -58,8 +59,8 @@ class BaseExtraction(BaseModel):
                     "location": "Outdoor park",
                     "hashtags": ["#fitness", "#hiit", "#workout"],
                     "any_other_info": "Flexible storage for any extra data"
-                }
             }
+        }
         }
 
 
@@ -78,6 +79,7 @@ class GenericExtraction(BaseModel):
         default_factory=datetime.now,
         description="Timestamp when extraction was performed"
     )
+    keyframes: Optional[list] = Field(None, description="List of keyframe image paths")
     confidence_score: float = Field(
         default=0.0,
         ge=0.0,

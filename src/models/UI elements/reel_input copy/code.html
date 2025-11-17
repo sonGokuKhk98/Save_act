@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Predictive Search Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d93f2",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101b22",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body>
+<div class="relative flex h-screen w-full flex-col bg-background-light dark:bg-background-dark font-display group/design-root overflow-y-auto">
+<header class="flex shrink-0 items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10">
+<div class="flex size-12 shrink-0 items-center justify-start">
+<span class="material-symbols-outlined text-zinc-800 dark:text-white" style="font-size: 28px;">
+                    auto_awesome
+                </span>
+</div>
+<h1 class="text-zinc-800 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Predictive Search</h1>
+<div class="flex w-12 items-center justify-end">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-transparent text-zinc-800 dark:text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
+<span class="material-symbols-outlined" style="font-size: 24px;">
+                        help_outline
+                    </span>
+</button>
+</div>
+</header>
+<main class="flex flex-col flex-1 px-4 py-3">
+<div class="flex flex-col pt-4">
+  <label class="flex flex-col w-full max-w-[480px] mx-auto">
+    <p class="text-zinc-800 dark:text-white text-base font-medium leading-normal pb-2 sr-only">Search Reels</p>
+    <div class="relative">
+        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" style="font-size: 24px;">
+            search
+        </span>
+        <input id="search-input" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-zinc-800 dark:text-white focus:outline-0 focus:ring-0 border border-zinc-300 dark:border-zinc-700 bg-background-light dark:bg-zinc-800 focus:border-primary h-16 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 pl-[52px] pr-[15px] text-lg font-normal leading-normal" placeholder="Describe a reel..." value=""/>
+        <button id="search-btn" class="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors">
+            Search
+        </button>
+    </div>
+</label>
+<!-- Update the reel suggestions container to be empty initially -->
+<div class="flex flex-col w-full max-w-[480px] bg-background-light dark:bg-zinc-800 rounded-lg overflow-hidden mt-4 mx-auto" id="reel-suggestions">
+  <!-- Results will be populated here -->
+</div>
+
+</div>
+<div class="flex flex-col gap-4 mt-8 px-4 w-full max-w-[480px] mx-auto">
+<div class="flex flex-col gap-2">
+<label class="text-zinc-800 dark:text-white text-base font-medium leading-normal" for="reel-link-input">Paste Instagram Reel Link</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" style="font-size: 20px;">
+                            link
+                        </span>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-zinc-800 dark:text-white focus:outline-0 focus:ring-0 border border-zinc-300 dark:border-zinc-700 bg-background-light dark:bg-zinc-800 focus:border-primary h-12 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 pl-10 pr-4 text-base font-normal leading-normal" id="reel-link-input" placeholder="https://www.instagram.com/reel/..."/>
+</div>
+</div>
+<button id="process-reel-btn" class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-primary text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 px-4">
+<span class="material-symbols-outlined" style="font-size: 20px;">
+                        bolt
+                    </span>
+<span>Process Instagram Reel</span>
+</button>
+</div>
+</main>
+<footer class="sticky bottom-0 bg-background-light dark:bg-background-dark px-4 py-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center mt-auto">
+<p class="text-zinc-600 dark:text-zinc-300 text-sm font-medium leading-normal">Powered by Supermemory.ai</p>
+</footer>
+</div>
+
+<script>
+  // Simple client-side handler to submit the reel URL to the FastAPI backend
+  // and navigate to the processing status screen.
+   /*async function submitReel() {
+    const input = document.getElementById('reel-link-input');
+    if (!input) return;
+
+    const instagramUrl = input.value.trim();
+    if (!instagramUrl) {
+      alert('Please paste an Instagram reel URL.');
+      return;
+    }
+
+    try {
+      const resp = await fetch('/api/reels/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instagram_url: instagramUrl }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to submit reel');
+      }
+
+      const data = await resp.json();
+      const taskId = data.task_id;
+
+      // Navigate to the processing status UI (served by FastAPI), passing the task id
+      window.location.href = `/processing-status?task_id=${encodeURIComponent(taskId)}`;
+    } catch (e) {
+      console.error(e);
+      alert('Error submitting reel: ' + e.message);
+    }
+  }
+
+ window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('process-reel-btn');
+    if (!btn) return;
+    btn.addEventListener('click', submitReel);
+  });*/
+
+  async function performSearch() {
+    const input = document.getElementById('search-input');
+    const suggestionsContainer = document.getElementById('reel-suggestions');
+    
+    if (!input || !suggestionsContainer) return;
+    
+    const query = input.value.trim();
+    if (!query) {
+      alert('Please enter a search query.');
+      return;
+    }
+    
+    // Show loading state
+    suggestionsContainer.innerHTML = `
+      <div class="flex items-center justify-center p-8">
+        <p class="text-zinc-500 dark:text-zinc-400">Searching...</p>
+      </div>
+    `;
+    
+    try {
+      const resp = await fetch('/api/reels/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query, limit: 10 }),
+      });
+      
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || 'Search failed');
+      }
+      
+      const data = await resp.json();
+      
+      // Clear and populate results
+      suggestionsContainer.innerHTML = '';
+      
+      if (data.results.length === 0) {
+        suggestionsContainer.innerHTML = `
+          <div class="flex items-center justify-center p-8">
+            <p class="text-zinc-500 dark:text-zinc-400">No results found</p>
+          </div>
+        `;
+        return;
+      }
+      
+      // Create result items
+      data.results.forEach(result => {
+        const resultItem = document.createElement('div');
+        resultItem.className = 'flex items-center gap-3 p-3 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 cursor-pointer transition-colors';
+        
+        const thumbnailUrl = result.thumbnail_url || 'https://via.placeholder.com/48';
+        
+        resultItem.innerHTML = `
+          <img alt="Reel Thumbnail" class="size-12 rounded-md object-cover flex-shrink-0" src="${thumbnailUrl}"/>
+          <p class="text-zinc-800 dark:text-white text-sm font-normal leading-normal truncate flex-1">
+            ${escapeHtml(result.title)}
+          </p>
+          <span class="material-symbols-outlined text-zinc-500 dark:text-zinc-400" style="font-size: 20px;">
+            arrow_outward
+          </span>
+        `;
+        
+        // Add click handler - navigate to generic-view with document_id
+        resultItem.addEventListener('click', () => {
+          // Assuming result has a document_id or we can extract it from metadata
+          const documentId = result.document_id || result.reel_id;
+          if (documentId) {
+            window.location.href = `/generic-view?document_id=${encodeURIComponent(documentId)}`;
+          } else {
+            alert('No document ID available for this result');
+          }
+        });
+        
+        suggestionsContainer.appendChild(resultItem);
+      });
+      
+    } catch (e) {
+      console.error(e);
+      suggestionsContainer.innerHTML = `
+        <div class="flex items-center justify-center p-8">
+          <p class="text-red-500">Error: ${escapeHtml(e.message)}</p>
+        </div>
+      `;
+    }
+  }
+
+  // Helper function to escape HTML
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Submit reel functionality (existing)
+  async function submitReel() {
+    const input = document.getElementById('reel-link-input');
+    if (!input) return;
+
+    const instagramUrl = input.value.trim();
+    if (!instagramUrl) {
+      alert('Please paste an Instagram reel URL.');
+      return;
+    }
+
+    try {
+      const resp = await fetch('/api/reels/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instagram_url: instagramUrl }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to submit reel');
+      }
+
+      const data = await resp.json();
+      const taskId = data.task_id;
+
+      window.location.href = `/processing-status?task_id=${encodeURIComponent(taskId)}`;
+    } catch (e) {
+      console.error(e);
+      alert('Error submitting reel: ' + e.message);
+    }
+  }
+
+  // Event listeners
+  window.addEventListener('DOMContentLoaded', () => {
+    const searchBtn = document.getElementById('search-btn');
+    const searchInput = document.getElementById('search-input');
+    const processBtn = document.getElementById('process-reel-btn');
+    
+    if (searchBtn) {
+      searchBtn.addEventListener('click', performSearch);
+    }
+    
+    if (searchInput) {
+      // Allow Enter key to trigger search
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          performSearch();
+        }
+      });
+    }
+    
+    if (processBtn) {
+      processBtn.addEventListener('click', submitReel);
+    }
+  });
+</script>
+
+</body></html>

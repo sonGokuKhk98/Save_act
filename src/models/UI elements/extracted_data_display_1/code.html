@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Extracted Reel Data</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#0d93f2",
+            "background-light": "#f5f7f8",
+            "background-dark": "#101b22",
+          },
+          fontFamily: {
+            "display": ["Manrope", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+    .workout-detail-view { display: block; }
+    .workout-timer-view { display: none; }</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark">
+<div class="relative flex h-auto min-h-screen w-full flex-col font-display group/design-root overflow-x-hidden">
+<div class="workout-detail-view flex-1 pb-24" id="workoutDetailView">
+<div class="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10">
+<div class="text-slate-800 dark:text-white flex size-12 shrink-0 items-center justify-center -ml-4">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</div>
+<h2 id="wd-title" class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Workout</h2>
+<div class="text-slate-800 dark:text-white flex size-12 shrink-0 items-center justify-center -mr-4">
+</div>
+</div>
+<!-- Hero image removed: focus on textual workout details only -->
+<div class="p-4 grid grid-cols-2">
+<div class="flex flex-col gap-1 border-t border-solid border-slate-200 dark:border-t-[#3b4a54] py-4 pr-2">
+<p class="text-slate-500 dark:text-[#9cadba] text-sm font-normal leading-normal">Duration</p>
+<p id="wd-duration" class="text-slate-800 dark:text-white text-sm font-semibold leading-normal">-</p>
+</div>
+<div class="flex flex-col gap-1 border-t border-solid border-slate-200 dark:border-t-[#3b4a54] py-4 pl-2">
+<p class="text-slate-500 dark:text-[#9cadba] text-sm font-normal leading-normal">Difficulty</p>
+<p id="wd-difficulty" class="text-slate-800 dark:text-white text-sm font-semibold leading-normal">-</p>
+</div>
+<div class="flex flex-col gap-1 border-t border-solid border-slate-200 dark:border-t-[#3b4a54] py-4 pr-2">
+<p class="text-slate-500 dark:text-[#9cadba] text-sm font-normal leading-normal">Total Exercises</p>
+<p id="wd-total-exercises" class="text-slate-800 dark:text-white text-sm font-semibold leading-normal">-</p>
+</div>
+<div class="flex flex-col gap-1 border-t border-solid border-slate-200 dark:border-t-[#3b4a54] py-4 pl-2">
+<p class="text-slate-500 dark:text-[#9cadba] text-sm font-normal leading-normal">Equipment</p>
+<p id="wd-equipment" class="text-slate-800 dark:text-white text-sm font-semibold leading-normal">-</p>
+</div>
+</div>
+<div class="flex flex-col p-4 gap-3 pt-0">
+<details class="flex flex-col rounded-xl border border-slate-200 dark:border-[#3b4a54] bg-white dark:bg-[#1C2933] px-[15px] py-[7px] group">
+<summary class="flex cursor-pointer list-none items-center justify-between gap-6 py-2">
+<p class="text-slate-800 dark:text-white text-sm font-medium leading-normal">Warm-up (2 mins)</p>
+<div class="text-slate-500 dark:text-white group-open:rotate-180 transition-transform">
+<span class="material-symbols-outlined text-xl">expand_more</span>
+</div>
+</summary>
+<div class="text-slate-600 dark:text-[#9cadba] text-sm font-normal leading-normal pb-2">
+<ul class="list-disc pl-5 space-y-1">
+<li>Jumping Jacks - 30 seconds</li>
+<li>High Knees - 30 seconds</li>
+<li>Butt Kicks - 30 seconds</li>
+<li>Arm Circles - 30 seconds</li>
+</ul>
+</div>
+</details>
+<details class="flex flex-col rounded-xl border border-slate-200 dark:border-[#3b4a54] bg-white dark:bg-[#1C2933] px-[15px] py-[7px] group" open="">
+<summary class="flex cursor-pointer list-none items-center justify-between gap-6 py-2">
+<p class="text-slate-800 dark:text-white text-sm font-medium leading-normal">Main Circuit (10 mins)</p>
+<div class="text-slate-500 dark:text-white group-open:rotate-180 transition-transform">
+<span class="material-symbols-outlined text-xl">expand_more</span>
+</div>
+</summary>
+<div class="text-slate-600 dark:text-[#9cadba] text-sm font-normal leading-normal pb-2">
+<p class="mb-2">Complete 3 rounds. 45 seconds work, 15 seconds rest.</p>
+<ul class="list-disc pl-5 space-y-1">
+<li>Burpees</li>
+<li>Squat Jumps</li>
+<li>Push-ups</li>
+<li>Mountain Climbers</li>
+<li>Plank</li>
+</ul>
+</div>
+</details>
+<details class="flex flex-col rounded-xl border border-slate-200 dark:border-[#3b4a54] bg-white dark:bg-[#1C2933] px-[15px] py-[7px] group">
+<summary class="flex cursor-pointer list-none items-center justify-between gap-6 py-2">
+<p class="text-slate-800 dark:text-white text-sm font-medium leading-normal">Cool-down (3 mins)</p>
+<div class="text-slate-500 dark:text-white group-open:rotate-180 transition-transform">
+<span class="material-symbols-outlined text-xl">expand_more</span>
+</div>
+</summary>
+<div class="text-slate-600 dark:text-[#9cadba] text-sm font-normal leading-normal pb-2">
+<ul class="list-disc pl-5 space-y-1">
+<li>Quad Stretch - 30 seconds per side</li>
+<li>Hamstring Stretch - 30 seconds per side</li>
+<li>Chest Stretch - 30 seconds</li>
+<li>Child's Pose - 60 seconds</li>
+</ul>
+</div>
+</details>
+</div>
+</div>
+<div class="workout-timer-view fixed inset-0 bg-background-light dark:bg-background-dark flex flex-col items-center justify-between p-6 z-20" id="workoutTimerView">
+<div class="flex items-center w-full justify-between pt-4 pb-2">
+<button class="text-slate-800 dark:text-white flex size-12 shrink-0 items-center justify-center -ml-4" onclick="toggleWorkoutView()">
+<span class="material-symbols-outlined text-2xl">close</span>
+</button>
+<h2 id="wt-phase" class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Workout</h2>
+<div class="size-12 -mr-4"></div> 
+</div>
+<div class="flex flex-col items-center justify-center flex-1 w-full gap-6">
+<p id="wt-next" class="text-slate-500 dark:text-[#9cadba] text-base font-medium leading-normal">Next: -</p>
+<h3 id="wt-exercise" class="text-slate-900 dark:text-white text-4xl font-extrabold leading-tight tracking-[-0.015em] text-center max-w-[280px]">Exercise</h3>
+<p id="wt-set" class="text-slate-500 dark:text-[#9cadba] text-sm font-medium leading-normal">Work</p>
+<p id="wt-timer" class="text-primary text-8xl font-extrabold leading-[1] mt-2">0:30</p>
+<div class="flex flex-col items-center gap-1 mt-2">
+<label for="wt-duration-input" class="text-slate-500 dark:text-[#9cadba] text-xs font-medium">Custom duration (seconds)</label>
+<input id="wt-duration-input" type="number" min="5" max="600" class="w-24 rounded-md border border-slate-300 dark:border-slate-600 bg-transparent text-center text-slate-900 dark:text-white text-sm py-1" placeholder="30"/>
+<p id="wt-duration-reco" class="text-slate-500 dark:text-[#9cadba] text-xs font-normal">Recommended: 30s</p>
+</div>
+<div class="flex flex-col items-center gap-1 mt-1">
+<label for="wt-sets-input" class="text-slate-500 dark:text-[#9cadba] text-xs font-medium">Sets per exercise</label>
+<input id="wt-sets-input" type="number" min="1" max="10" class="w-24 rounded-md border border-slate-300 dark:border-slate-600 bg-transparent text-center text-slate-900 dark:text-white text-sm py-1" placeholder="3"/>
+<p id="wt-sets-reco" class="text-slate-500 dark:text-[#9cadba] text-xs font-normal">Recommended: 1 set</p>
+</div>
+</div>
+<div class="flex w-full gap-4 pt-4">
+  <button
+    id="wt-pause"
+    class="flex items-center justify-center gap-2 flex-1 rounded-full bg-slate-200 dark:bg-[#3b4a54] py-3 text-slate-800 dark:text-white text-base font-semibold leading-normal"
+  >
+    <span class="material-symbols-outlined">pause</span> Pause
+  </button>
+  <button
+    id="wt-next-set-btn"
+    class="flex items-center justify-center gap-2 flex-1 rounded-full bg-slate-200 dark:bg-[#3b4a54] py-3 text-slate-800 dark:text-white text-base font-semibold leading-normal"
+  >
+    Next Set <span class="material-symbols-outlined">fast_forward</span>
+  </button>
+  <button
+    id="wt-next-ex-btn"
+    class="flex items-center justify-center gap-2 flex-1 rounded-full bg-primary py-3 text-white text-base font-semibold leading-normal"
+  >
+    Next Exercise <span class="material-symbols-outlined">skip_next</span>
+  </button>
+</div>
+</div>
+<div class="fixed bottom-0 left-0 right-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 workout-detail-view" id="detailActionBar">
+<div class="flex items-center justify-around p-4">
+<button class="flex flex-col items-center justify-center gap-1 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">bookmark_add</span>
+<span class="text-xs font-medium">Save</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">share</span>
+<span class="text-xs font-medium">Share</span>
+</button>
+<button class="flex-1 max-w-[180px] rounded-full bg-primary py-3 text-white text-base font-semibold leading-normal flex items-center justify-center gap-2" onclick="toggleWorkoutView()">
+<span class="material-symbols-outlined">play_arrow</span> Start Workout
+      </button>
+<button class="flex flex-col items-center justify-center gap-1 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">edit</span>
+<span class="text-xs font-medium">Edit</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  let workoutPlan = null;
+  let currentIndex = 0;
+  let remainingSeconds = 0;
+  let timerId = null;
+  let isPaused = false;
+
+  // Per-exercise state for more dynamic behaviour
+  let currentSetIndex = 1;
+  let totalSetsForCurrent = 1;
+  let phaseMode = 'work'; // 'work' | 'rest'
+  let currentWorkSeconds = 30;
+  let currentRestSeconds = 0;
+  let userDurationSeconds = null; // user override applied to all work intervals
+  let userSets = null; // user override for sets per exercise
+
+  function getReelId() {
+    const params = new URLSearchParams(window.location.search);
+    // Support both legacy "reel_id" (local flow) and newer "document_id"
+    // (Supermemory-backed flow). Both keys ultimately map to entries in
+    // the REELS cache on the backend.
+    return params.get('reel_id') || params.get('document_id');
+  }
+
+  async function fetchReel(reelId) {
+    const resp = await fetch(`/api/reels/${encodeURIComponent(reelId)}`);
+    if (!resp.ok) throw new Error('Failed to fetch reel');
+    return resp.json();
+  }
+
+  function buildWorkoutPlan(reel) {
+    const extraction = reel.extraction || {};
+    const isGeneric = reel.is_generic || reel.model_name === 'GenericExtraction';
+
+    let raw = extraction;
+    if (isGeneric && extraction.raw_data && typeof extraction.raw_data === 'object') {
+      raw = extraction.raw_data;
+    }
+
+    const exercises = Array.isArray(extraction.exercises)
+      ? extraction.exercises
+      : Array.isArray(raw.exercises)
+        ? raw.exercises
+        : Array.isArray(raw.items)
+          ? raw.items
+          : [];
+
+    return {
+      title: extraction.title || 'Workout',
+      description: extraction.description || '',
+      difficulty:
+        extraction.difficulty_level ||
+        (raw.additional_context && raw.additional_context.difficulty_level) ||
+        '-',
+      estimatedMinutes:
+        extraction.estimated_duration_minutes ||
+        raw.estimated_duration_minutes ||
+        null,
+      equipment:
+        (raw.additional_context && raw.additional_context.equipment) ||
+        raw.equipment ||
+        null,
+      exercises,
+    };
+  }
+
+  function formatDuration(seconds) {
+    if (!seconds || isNaN(seconds)) return '0:30';
+    const s = Math.max(0, Math.floor(seconds));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${r.toString().padStart(2, '0')}`;
+  }
+
+  function populateDetailView() {
+    if (!workoutPlan) return;
+    const { title, difficulty, estimatedMinutes, equipment, exercises } = workoutPlan;
+
+    const titleEl = document.getElementById('wd-title');
+    const diffEl = document.getElementById('wd-difficulty');
+    const durEl = document.getElementById('wd-duration');
+    const totalExEl = document.getElementById('wd-total-exercises');
+    const equipEl = document.getElementById('wd-equipment');
+
+    if (titleEl) titleEl.textContent = title;
+    if (diffEl) diffEl.textContent = difficulty || '-';
+    if (durEl) {
+      if (estimatedMinutes) {
+        durEl.textContent = `${estimatedMinutes} mins`;
+      } else {
+        durEl.textContent = '-';
+      }
+    }
+    if (totalExEl) totalExEl.textContent = exercises.length || '-';
+    if (equipEl) {
+      if (Array.isArray(equipment)) {
+        equipEl.textContent = equipment.join(', ');
+      } else if (typeof equipment === 'string') {
+        equipEl.textContent = equipment;
+      } else {
+        equipEl.textContent = '-';
+      }
+    }
+  }
+
+  function showDetailView() {
+    const detailView = document.getElementById('workoutDetailView');
+    const timerView = document.getElementById('workoutTimerView');
+    const detailActionBar = document.getElementById('detailActionBar');
+
+    if (detailView && timerView && detailActionBar) {
+      detailView.classList.add('workout-detail-view');
+      detailView.classList.remove('hidden');
+      detailActionBar.classList.add('workout-detail-view');
+      detailActionBar.classList.remove('hidden');
+      timerView.classList.add('workout-timer-view');
+      timerView.classList.remove('block');
+    }
+  }
+
+  function showTimerView() {
+    const detailView = document.getElementById('workoutDetailView');
+    const timerView = document.getElementById('workoutTimerView');
+    const detailActionBar = document.getElementById('detailActionBar');
+
+    if (detailView && timerView && detailActionBar) {
+      detailView.classList.remove('workout-detail-view');
+      detailView.classList.add('hidden');
+      detailActionBar.classList.remove('workout-detail-view');
+      detailActionBar.classList.add('hidden');
+      timerView.classList.remove('workout-timer-view');
+      timerView.classList.add('block');
+    }
+  }
+
+  function toggleWorkoutView() {
+    const detailView = document.getElementById('workoutDetailView');
+    if (detailView && detailView.classList.contains('workout-detail-view')) {
+      // Going into timer view
+      startWorkoutFromBeginning();
+    } else {
+      // Back to detail view
+      stopTimer();
+      showDetailView();
+    }
+  }
+
+  // Read the latest values from the duration / sets inputs so that
+  // user preferences are applied when starting or skipping exercises.
+  function readUserSettings() {
+    const durInput = document.getElementById('wt-duration-input');
+    const setsInput = document.getElementById('wt-sets-input');
+
+    if (durInput) {
+      const val = Number(durInput.value);
+      if (!isNaN(val) && val >= 5 && val <= 600) {
+        userDurationSeconds = val;
+      } else {
+        userDurationSeconds = null;
+      }
+    }
+
+    if (setsInput) {
+      const val = Number(setsInput.value);
+      if (!isNaN(val) && val >= 1 && val <= 10) {
+        userSets = val;
+      } else {
+        userSets = null;
+      }
+    }
+  }
+
+  function updateTimerUI() {
+    const phaseEl = document.getElementById('wt-phase');
+    const setEl = document.getElementById('wt-set');
+    const timerEl = document.getElementById('wt-timer');
+    const nextEl = document.getElementById('wt-next');
+
+    if (phaseEl) {
+      phaseEl.textContent = workoutPlan ? (workoutPlan.title || 'Workout') : 'Workout';
+    }
+
+    if (setEl) {
+      const modeLabel = phaseMode === 'rest' ? 'Rest' : 'Work';
+      if (totalSetsForCurrent > 1) {
+        setEl.textContent = `Set ${currentSetIndex} of ${totalSetsForCurrent} • ${modeLabel}`;
+      } else {
+        setEl.textContent = modeLabel;
+      }
+    }
+
+    if (timerEl) {
+      timerEl.textContent = formatDuration(remainingSeconds);
+    }
+
+    // nextEl is updated in loadExercise when exercise changes; no need to touch here.
+  }
+
+  function loadExercise(index) {
+    if (!workoutPlan || !workoutPlan.exercises.length) return;
+    currentIndex = index;
+    const ex = workoutPlan.exercises[index];
+    const next = workoutPlan.exercises[index + 1];
+
+    const exNameEl = document.getElementById('wt-exercise');
+    const nextEl = document.getElementById('wt-next');
+
+    if (exNameEl) {
+      exNameEl.textContent = ex.name || ex.item || ex.exercise || `Exercise ${index + 1}`;
+    }
+    if (nextEl) {
+      if (next) {
+        const nextName = next.name || next.item || next.exercise || `Exercise ${index + 2}`;
+        nextEl.textContent = `Next: ${nextName}`;
+      } else {
+        nextEl.textContent = 'Next: Finished';
+      }
+    }
+
+    // Determine sets and durations for this exercise
+    const recommendedSets = ex.sets && !isNaN(Number(ex.sets)) && Number(ex.sets) > 0
+      ? Number(ex.sets)
+      : 1;
+    const recommendedWorkDur =
+      ex.duration_seconds ||
+      ex.duration ||
+      ex.time_per_set ||
+      30;
+    const restDur =
+      ex.rest_seconds ||
+      ex.rest ||
+      ex.rest_between_sets ||
+      0;
+
+    totalSetsForCurrent = userSets && !isNaN(userSets) && userSets > 0
+      ? userSets
+      : recommendedSets;
+    currentSetIndex = 1;
+    const baseWork = typeof recommendedWorkDur === 'number' ? recommendedWorkDur : 30;
+    currentWorkSeconds = userDurationSeconds && !isNaN(userDurationSeconds)
+      ? userDurationSeconds
+      : baseWork;
+    currentRestSeconds = typeof restDur === 'number' ? restDur : 0;
+    phaseMode = 'work';
+    remainingSeconds = currentWorkSeconds;
+
+    // Keep recommendation as static text so user can see original suggestion
+    const recoEl = document.getElementById('wt-duration-reco');
+    if (recoEl) {
+      recoEl.textContent = `Recommended: ${baseWork}s`;
+    }
+
+    const setsRecoEl = document.getElementById('wt-sets-reco');
+    if (setsRecoEl) {
+      setsRecoEl.textContent = `Recommended: ${recommendedSets} set${recommendedSets !== 1 ? 's' : ''}`;
+    }
+
+    // If inputs are empty (first run), pre-fill them with recommended
+    // values so the user can see and tweak them.
+    const durInput = document.getElementById('wt-duration-input');
+    if (durInput && (durInput.value === '' || durInput.value == null)) {
+      durInput.value = baseWork;
+    }
+    const setsInput = document.getElementById('wt-sets-input');
+    if (setsInput && (setsInput.value === '' || setsInput.value == null)) {
+      setsInput.value = recommendedSets;
+    }
+
+    updateTimerUI();
+  }
+
+  function tick() {
+    if (isPaused) return;
+    remainingSeconds -= 1;
+    updateTimerUI();
+
+    if (remainingSeconds <= 0) {
+      // Decide what happens next based on phase and sets
+      if (phaseMode === 'work') {
+        if (currentSetIndex < totalSetsForCurrent) {
+          if (currentRestSeconds > 0) {
+            // Go into rest between sets
+            phaseMode = 'rest';
+            remainingSeconds = currentRestSeconds;
+            updateTimerUI();
+          } else {
+            // No rest, go straight to next set
+            currentSetIndex += 1;
+            phaseMode = 'work';
+            remainingSeconds = currentWorkSeconds;
+            updateTimerUI();
+          }
+        } else {
+          // Finished last set for this exercise
+          nextExercise();
+        }
+      } else {
+        // We were resting
+        if (currentSetIndex < totalSetsForCurrent) {
+          currentSetIndex += 1;
+          phaseMode = 'work';
+          remainingSeconds = currentWorkSeconds;
+          updateTimerUI();
+        } else {
+          nextExercise();
+        }
+      }
+    }
+  }
+
+  function startTimer() {
+    stopTimer();
+    isPaused = false;
+    timerId = setInterval(tick, 1000);
+  }
+
+  function stopTimer() {
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+  }
+
+  function togglePause() {
+    isPaused = !isPaused;
+    const pauseBtn = document.getElementById('wt-pause');
+    if (pauseBtn) {
+      pauseBtn.querySelector('span').textContent = isPaused ? 'play_arrow' : 'pause';
+      pauseBtn.lastChild.textContent = isPaused ? ' Resume' : ' Pause';
+    }
+  }
+
+  function nextExercise() {
+    if (!workoutPlan || !workoutPlan.exercises.length) return;
+    currentIndex += 1;
+    if (currentIndex >= workoutPlan.exercises.length) {
+      stopTimer();
+      const exNameEl = document.getElementById('wt-exercise');
+      const timerEl = document.getElementById('wt-timer');
+      const nextEl = document.getElementById('wt-next');
+      if (exNameEl) exNameEl.textContent = 'Workout Complete';
+      if (timerEl) timerEl.textContent = '0:00';
+      if (nextEl) nextEl.textContent = 'Next: Done';
+      return;
+    }
+    // Apply any updated user settings before moving on so the timer
+    // resets correctly for the next exercise.
+    readUserSettings();
+    loadExercise(currentIndex);
+    startTimer();
+  }
+
+  // Manually skip to the next set for the current exercise, ignoring any
+  // remaining time in the current interval.
+  function skipToNextSet() {
+    if (!workoutPlan || !workoutPlan.exercises.length) return;
+
+    if (phaseMode === 'work' || phaseMode === 'rest') {
+      if (currentSetIndex < totalSetsForCurrent) {
+        currentSetIndex += 1;
+        phaseMode = 'work';
+        remainingSeconds = currentWorkSeconds;
+        updateTimerUI();
+      } else {
+        // If we're already on the last set, behave like Next Exercise.
+        nextExercise();
+      }
+    } else {
+      nextExercise();
+    }
+  }
+
+  function startWorkoutFromBeginning() {
+    if (!workoutPlan || !workoutPlan.exercises.length) {
+      alert('No workout exercises found for this reel.');
+      return;
+    }
+    // Capture the latest user preferences before starting
+    readUserSettings();
+    currentIndex = 0;
+    showTimerView();
+    loadExercise(currentIndex);
+    startTimer();
+  }
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    const reelId = getReelId();
+    if (!reelId) {
+      console.warn('Missing reel_id in query string');
+      return;
+    }
+    try {
+      const reel = await fetchReel(reelId);
+      workoutPlan = buildWorkoutPlan(reel);
+      populateDetailView();
+
+      const pauseBtn = document.getElementById('wt-pause');
+      const nextSetBtn = document.getElementById('wt-next-set-btn');
+      const nextExBtn = document.getElementById('wt-next-ex-btn');
+      const durInput = document.getElementById('wt-duration-input');
+      const setsInput = document.getElementById('wt-sets-input');
+
+      if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
+      if (nextSetBtn) nextSetBtn.addEventListener('click', skipToNextSet);
+      if (nextExBtn) nextExBtn.addEventListener('click', nextExercise);
+
+      if (durInput) {
+        durInput.addEventListener('input', readUserSettings);
+      }
+
+      if (setsInput) {
+        setsInput.addEventListener('input', readUserSettings);
+      }
+    } catch (e) {
+      console.error('Error loading workout view:', e);
+    }
+  });
+</script>
+</body></html>

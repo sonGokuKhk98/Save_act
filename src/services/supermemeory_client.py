@@ -51,6 +51,126 @@ class SupermemeoryClient:
         self, 
         extraction: BaseExtraction,
         source_url: Optional[str] = None
+        ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+        """
+        Store extracted data in supermemeory.ai.
+        
+        Args:
+            extraction: Extracted data model instance
+            source_url: Original video URL (optional)
+        
+        Returns:
+            Tuple of (response dict, error_message)
+        """
+        try:
+            # Prepare payload
+            import json
+            import base64
+            import hashlib
+            import httpx
+            keyframes = getattr(extraction, "keyframes", None)
+            extraction.keyframes = []
+            _dump = extraction.model_dump(mode="json") # remove the non emebddding fields
+            _dump.pop("extracted_at", None)
+            _dump.pop("confidence_score", None)
+            #_dump.pop("keyframes", None)
+            payload = {
+                #"title": extraction.title,
+                # Remove 'extracted_at' and 'confidence_score' before serializing to JSON content
+                
+                "content": json.dumps(_dump),
+                "container_tag": extraction.category,
+                #"container_tags": self._generate_tags(extraction),
+                "metadata": {
+                    "topic": extraction.title or extraction.category,
+                    "category": extraction.category,
+                    "source_url": source_url or extraction.source_url,
+                    "extracted_at": extraction.extracted_at.isoformat(),
+                    "confidence_score": extraction.confidence_score,
+                    "customId": f"extraction_{hashlib.md5(source_url.encode()).hexdigest()[:12]}"
+                    #"word_count": len(extraction.model_dump().split())
+                }
+            }
+
+            try:
+                # Store main extraction using memories API
+                result = self.client.memories.add(**payload)
+                main_result = result.model_dump() if hasattr(result, 'model_dump') else result
+                
+                # Process keyframes separately using file upload endpoint
+                if keyframes and isinstance(keyframes, list):
+                    uploaded_count = 0
+                    
+                    for idx, frame_path in enumerate(keyframes):
+                        # Skip alternate keyframes (take every other one: 0, 2, 4, 6, ...)
+                        if idx % 2 != 0:
+                            continue
+                        try:
+                            # Detect mime type from extension
+                            mime_type = "image/jpeg"
+                            if str(frame_path).lower().endswith(".png"):
+                                mime_type = "image/png"
+                            elif str(frame_path).lower().endswith(".webp"):
+                                mime_type = "image/webp"
+                            
+                            # Build keyframe metadata
+                            kf_metadata = {
+                                "topic": extraction.title or extraction.category,
+                                "category": extraction.category,
+                                "frame_index": idx,
+                                "source_url": source_url or extraction.source_url,
+                                "extracted_at": extraction.extracted_at.isoformat(),
+                                "customId": payload["metadata"]["customId"]
+                                
+                            }
+                            kf_metadata = {k: v for k, v in kf_metadata.items() if v is not None}
+                            
+                            # Prepare multipart form data
+                            url = f"{self.base_url}/v3/documents/file"
+                            
+                            with httpx.Client(timeout=self.timeout) as client:
+                                with open(frame_path, "rb") as f:
+                                    files = {
+                                        "file": (frame_path.name if hasattr(frame_path, 'name') else f"keyframe_{idx}.jpg", f, mime_type)
+                                    }
+                                    
+                                    data = {
+                                        "container_tag": json.dumps([extraction.category]),
+                                        "fileType": "image",
+                                        "mimeType": mime_type,
+                                        "metadata": json.dumps(kf_metadata)
+                                    }
+                                    
+                                    response = client.post(
+                                        url,
+                                        headers={"Authorization": f"Bearer {self.api_key}"},
+                                        files=files,
+                                        data=data
+                                    )
+                                    response.raise_for_status()
+                                    uploaded_count += 1
+                            
+                        except Exception as e:
+                            # Skip individual keyframes that fail to upload
+                            print(f"⚠️  Warning: Could not upload keyframe {frame_path}: {e}")
+                            continue
+                    
+                    if uploaded_count > 0:
+                        print(f"✅ Stored {uploaded_count} keyframes successfully")
+
+                return main_result, None
+                
+            except Exception as e:
+                return None, f"Supermemory package error: {str(e)}"
+                
+        except Exception as e:
+            return None, f"Error storing extraction: {str(e)}"
+    
+            
+    def store_extraction1(
+        self, 
+        extraction: BaseExtraction,
+        source_url: Optional[str] = None
     ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """
         Store extracted data in supermemeory.ai.
@@ -64,44 +184,37 @@ class SupermemeoryClient:
         """
         try:
             # Prepare payload
+            import json
             payload = {
-                "title": extraction.title,
-                "content": extraction.model_dump(),
-                "category": extraction.category,
-                "tags": self._generate_tags(extraction),
+                #"title": extraction.title,
+                "content": json.dumps(extraction.model_dump(mode="json")),
+                "container_tag": extraction.category,
+                #"container_tags": self._generate_tags(extraction),
                 "metadata": {
+                    "topic": extraction.title,
                     "source_url": source_url or extraction.source_url,
                     "extracted_at": extraction.extracted_at.isoformat(),
-                    "confidence_score": extraction.confidence_score
+                    "confidence_score": extraction.confidence_score,
+                    #"word_count": len(extraction.model_dump().split())
                 }
             }
+
+            import httpx
+            url = f"{self.base_url}/v3/documents"
             
-            # Use supermemory package if available
-            if self.use_package:
-                try:
-                    # Use the supermemory package API
-                    # Note: The exact API may vary, adjust based on package documentation
-                    result = self.client.memories.create(**payload)
-                    return result.model_dump() if hasattr(result, 'model_dump') else result, None
-                except Exception as e:
-                    return None, f"Supermemory package error: {str(e)}"
-            else:
-                # Fallback to HTTP
-                import httpx
-                url = f"{self.base_url}/v1/memories"
-                
-                with httpx.Client(timeout=self.timeout) as client:
-                    response = client.post(
-                        url,
-                        headers=self._get_headers(),
-                        json=payload
-                    )
-                    response.raise_for_status()
-                    return response.json(), None
+            with httpx.Client(timeout=self.timeout) as client:
+                response = client.post(
+                    url,
+                    headers=self._get_headers(),
+                    json=payload
+                )
+                response.raise_for_status()
+                return response.json(), None
                 
         except Exception as e:
             return None, f"Error storing extraction: {str(e)}"
-    
+
+
     def _generate_tags(self, extraction: BaseExtraction) -> list[str]:
         """
         Generate tags based on extraction category and content.

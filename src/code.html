@@ -1,0 +1,2208 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Generic Extraction View - Variant 2</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d93f2",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101b22",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+                'FILL' 0,
+                'wght' 400,
+                'GRAD' 0,
+                'opsz' 24
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    .ai-flash {
+      box-shadow: 0 0 0 2px rgba(13, 147, 242, 0.9);
+    }
+
+    /* Slim, animated slider bar used when Agentic Reconstruct is running */
+    @keyframes reconstruct-slider {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(300%);
+      }
+    }
+
+    .reconstruct-slider-bar {
+      animation: reconstruct-slider 1s linear infinite;
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-white/90">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark">
+<div class="flex flex-col gap-2 bg-[#101b22] px-4 pt-4 pb-2 sticky top-0 z-10 border-b border-white/10">
+<div class="flex items-center h-12 justify-between">
+<button
+  type="button"
+  id="gx-back-button"
+  class="flex size-12 shrink-0 items-center justify-center -ml-3 rounded-full hover:bg-white/10 transition"
+>
+<span class="material-symbols-outlined text-white/90">arrow_back</span>
+</button>
+<div class="flex w-12 items-center justify-end">
+  <!-- Right side intentionally left empty for now -->
+</div>
+</div>
+<div class="flex items-center gap-2">
+  <!-- Title starts in a skeleton/loading state; real text is injected by hydrateGenericExtraction -->
+  <p
+    id="gx-title"
+    class="text-white tracking-light text-[28px] font-bold leading-tight bg-white/10 rounded-md text-transparent animate-pulse px-1"
+  >
+    Loading title…
+  </p>
+  <button
+    id="gx-source-link"
+    class="material-symbols-outlined text-white/70 hidden"
+    title="Open source reel"
+  >
+    link
+  </button>
+</div>
+<div class="flex gap-3 pt-2 flex-wrap pb-2 items-center">
+<div class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-[#223949] px-4">
+<p id="gx-category" class="text-white text-base font-medium leading-normal">Recipe</p>
+</div>
+<div id="gx-confidence-pill" class="flex h-9 shrink-0 items-center justify-center gap-x-1 rounded-full bg-green-900/50 pl-2 pr-3 border border-green-500/50">
+<span class="material-symbols-outlined text-green-300 text-base !-mr-1">signal_cellular_alt</span>
+<p id="gx-confidence-label" class="text-green-300 text-sm font-medium leading-normal">High</p>
+</div>
+  <button
+    id="gx-agentic-enhance"
+    class="flex items-center gap-1 rounded-full bg-gradient-to-r from-primary to-emerald-400 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-primary/40 animate-pulse"
+  >
+    <span class="material-symbols-outlined text-sm">auto_awesome</span>
+    <span>Agentic Enhance</span>
+  </button>
+  <button
+    id="gx-agentic-reconstruct"
+    class="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-4 py-2 text-xs font-semibold text-black shadow-lg shadow-yellow-400/60 animate-pulse"
+  >
+    <span class="material-symbols-outlined text-sm">auto_fix_high</span>
+    <span>Agentic Reconstruct</span>
+  </button>
+</div>
+<!-- Agentic Reconstruct loading slider (shown while reconstruct is running) -->
+<div id="gx-reconstruct-loading" class="w-full h-1 rounded-full bg-primary/20 overflow-hidden hidden mt-1">
+  <div class="h-full w-1/3 bg-primary/80 reconstruct-slider-bar"></div>
+</div>
+</div>
+
+<div id="gx-loading-skeleton" class="flex flex-col space-y-4 p-4">
+  <div class="h-5 w-32 rounded-full bg-white/10 animate-pulse"></div>
+  <div class="h-4 w-64 rounded-full bg-white/5 animate-pulse"></div>
+  <div class="grid grid-cols-2 gap-4 pt-4">
+    <div class="aspect-[3/4] w-full rounded-2xl bg-white/5 animate-pulse"></div>
+    <div class="aspect-[3/4] w-full rounded-2xl bg-white/5 animate-pulse"></div>
+  </div>
+</div>
+
+<div id="gx-main-content" class="flex flex-col space-y-8 p-4 hidden">
+<p id="gx-summary" class="text-white/70 text-base font-normal leading-normal pb-3">
+  AI-generated generic view. Some fields could not be fully structured.
+</p>
+<section id="gx-ai-plan-section" class="flex flex-col hidden">
+<h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-2 flex items-center gap-2">
+<span>AI‑enhanced summary</span>
+<span class="inline-flex items-center rounded-full bg-primary/20 text-primary text-[10px] font-semibold px-2 py-0.5 border border-primary/40">
+Agentic
+</span>
+</h3>
+<div class="rounded-2xl bg-gradient-to-r from-primary/10 via-[#071019] to-emerald-500/10 border border-primary/40 p-[1px]">
+<div class="rounded-2xl bg-[#071019] p-4 flex flex-col gap-3">
+<div>
+<p id="gx-ai-heading" class="text-white text-base font-semibold leading-snug"></p>
+<p id="gx-ai-subtitle" class="text-white/70 text-sm leading-snug mt-1"></p>
+</div>
+<div id="gx-ai-bullets-wrapper" class="mt-1 hidden">
+<p class="text-white/60 text-xs mb-1">Highlights:</p>
+<ul id="gx-ai-bullets" class="list-disc pl-5 space-y-1 text-white text-sm"></ul>
+</div>
+<div id="gx-ai-actions-wrapper" class="mt-2 hidden">
+<p class="text-white/60 text-xs mb-1">Suggested next steps:</p>
+<ul id="gx-ai-actions" class="list-disc pl-5 space-y-1 text-white/80 text-sm"></ul>
+</div>
+</div>
+</div>
+</section>
+<section id="gx-visual-section" class="flex flex-col hidden">
+<h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-3">Visual Context</h3>
+<div class="flex items-center gap-3 rounded-2xl bg-[#071019] border border-white/10 p-3">
+<div class="h-28 w-44 md:h-36 md:w-64 rounded-xl bg-black/20 overflow-hidden flex items-center justify-center">
+<img id="gx-thumbnail" alt="Reel keyframe" class="h-full w-full object-cover hidden">
+</div>
+<p class="text-white/70 text-xs leading-snug">
+AI-generated view based on this keyframe. For products, you can also use Google Lens to find visually similar items.
+</p>
+</div>
+</section>
+<section id="gx-watch-section" class="flex flex-col hidden">
+<div class="flex items-center justify-between rounded-xl bg-[#101b22] px-4 py-3 border border-white/10">
+<div class="flex flex-col min-w-0 mr-3">
+<p class="text-white/70 text-xs font-medium">Original reel</p>
+<a id="gx-watch-url" class="text-primary text-xs truncate" href="#" target="_blank" rel="noopener noreferrer">https://...</a>
+</div>
+<button id="gx-watch-button" class="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white">
+<span class="material-symbols-outlined text-sm">play_arrow</span>
+<span>Watch</span>
+</button>
+</div>
+</section>
+<section id="gx-key-items-section" class="flex flex-col">
+<h3 id="gx-key-items-title" class="text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-4">Key Items</h3>
+<div id="gx-items" class="flex flex-col gap-4">
+<!-- Key items injected by JS -->
+</div>
+</section>
+<div class="w-full h-px bg-white/10"></div>
+<section id="gx-details-section" class="flex flex-col">
+<h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-4">Details</h3>
+<div id="gx-details" class="flex flex-col gap-4">
+<!-- Details injected by JS -->
+</div>
+</section>
+<div class="w-full h-px bg-white/10"></div>
+<section id="gx-steps-section" class="flex flex-col">
+<h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-4">Steps</h3>
+<div id="gx-steps" class="flex flex-col gap-4">
+<!-- Steps / instructions injected by JS -->
+</div>
+</section>
+<div class="w-full h-px bg-white/10"></div>
+<section id="gx-additional-section" class="flex flex-col">
+<h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-4">Additional Context</h3>
+<div id="gx-additional-context" class="flex flex-col gap-4">
+<!-- Additional context injected by JS -->
+</div>
+</section>
+<div class="w-full h-px bg-white/10"></div>
+<div class="flex flex-col gap-3">
+<button id="gx-take-action" class="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white hidden">
+<span class="material-symbols-outlined text-base">bolt</span>
+<span>Take Action</span>
+</button>
+<button id="gx-toggle-raw" class="flex items-center gap-2 text-primary">
+<p class="text-base font-bold">View Raw Data</p>
+<span class="material-symbols-outlined">code</span>
+</button>
+<div id="gx-raw-container" class="mt-4 rounded-lg bg-[#1E1E1E] p-4 hidden">
+<pre class="text-[#EAEAEA] text-xs font-mono overflow-x-auto"><code id="gx-raw-json">...</code></pre>
+</div>
+</div>
+</div>
+<div class="px-4 pt-4 pb-8 mt-auto">
+<div class="flex items-start gap-2 text-center w-full justify-center">
+<span class="material-symbols-outlined text-base text-white/50 mt-0.5">info</span>
+<p id="gx-fallback-note" class="text-white/50 text-sm font-normal leading-normal max-w-xs">Auto-formatted generic view. Original type: recipe_v2. Reason: Key fields missing.</p>
+</div>
+</div>
+</div>
+
+<!-- Action sheet overlay -->
+<div id="gx-action-sheet" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end justify-center z-30 hidden">
+  <div class="w-full max-w-md bg-[#071019] rounded-t-2xl border-t border-white/10 p-4 pb-6">
+    <div class="flex items-center justify-between mb-2">
+      <p class="text-white text-sm font-semibold">Take Action</p>
+      <button id="gx-action-close" class="text-white/60 hover:text-white">
+        <span class="material-symbols-outlined text-lg">close</span>
+      </button>
+    </div>
+    <p id="gx-action-subtitle" class="text-white/60 text-xs mb-3">Choose what you’d like to do with this reel.</p>
+    <div id="gx-action-list" class="flex flex-col gap-2">
+      <!-- Actions injected by JS -->
+</div>
+</div>
+</div>
+
+<script>
+  // Loader that fetches either by reel_id (old flow) or document_id (new Supermemory flow)
+  async function loadReelForGenericView() {
+    const params = new URLSearchParams(window.location.search);
+    //const reelId = params.get('reel_id');
+    const documentId = params.get('document_id');
+    
+    // New flow: document_id from Supermemory search
+    if (documentId) {
+      try {
+        const resp = await fetch(`/api/reels/document/${encodeURIComponent(documentId)}`);
+        if (!resp.ok) throw new Error('Failed to fetch document');
+        const data = await resp.json();
+        
+        // Parse the Supermemory document structure
+        const docData = data.document;
+        const keyframes = data.keyframes || [];
+        const customId = data.custom_id;
+        
+        // Parse content JSON
+        let contentData = {};
+        try {
+          contentData = JSON.parse(docData.content || '{}');
+        } catch (e) {
+          console.error('Failed to parse content:', e);
+        }
+        
+        // Transform Supermemory data into the extraction format expected by hydrateGenericExtraction
+        const metadata = docData.metadata || {};
+        const extraction = {
+          title: docData.title || metadata.title || metadata.topic || 'Untitled',
+          description: docData.summary || '',
+          category: metadata.category || contentData.category || 'product',
+          confidence_score: metadata.confidence_score || contentData.confidence_score || 0,
+          source_url: metadata.source_url || '',
+          raw_data: {
+            ...contentData,
+            _supermemory_id: documentId,
+            _custom_id: customId,
+            _keyframes: keyframes
+          }
+        };
+        
+        // Set global variables
+        window.__REEL_ID__ = documentId;
+        window.__THUMBNAIL_URL__ = keyframes.length > 0 ? keyframes[0].url : null;
+        window.__EXTRACTION__ = {
+          model_name: 'GenericExtraction',
+          extraction
+        };
+        
+        return;
+      } catch (e) {
+        console.error('Error loading document from Supermemory:', e);
+      }
+    }
+    
+    
+    if (!documentId) {
+      console.warn('No document_id in query string; ensure window.__EXTRACTION__ is set manually.');
+    }
+  }
+
+  </script>
+
+<script>
+
+
+  // Helper to safely read the extraction object.
+  function getExtraction() {
+    const data = window.__EXTRACTION__ || null;
+    if (!data) return null;
+    // New API shape: { model_name, extraction, ... }
+    if (data.extraction) {
+      return data.extraction;
+    }
+    // Fallback: allow older shape where the object itself is the extraction
+    return data;
+  }
+
+  function mapConfidenceLabel(score) {
+    if (typeof score !== 'number') return 'Unknown';
+    if (score >= 0.75) return 'High';
+    if (score >= 0.4) return 'Medium';
+    return 'Low';
+  }
+
+  function capitalize(word) {
+    if (!word) return '';
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }
+
+  // Basic HTML escape to safely inject text before linkifying.
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Turn plain text into HTML with clickable links for URLs and phone numbers.
+  // This is intentionally simple and conservative.
+  function linkifyText(str) {
+    const escaped = escapeHtml(str);
+    // URLs (http/https)
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    // Very simple phone pattern: sequences like +971 50 123 4567 or 050-123-4567
+    const phoneRegex = /(\+?\d[\d\s\-]{7,}\d)/g;
+
+    let html = escaped;
+
+    // Linkify URLs first
+    html = html.replace(urlRegex, (match) => {
+      const href = match;
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-primary underline">${match}</a>`;
+    });
+
+    // Then linkify phone numbers (skip obviously numeric URLs we already wrapped)
+    html = html.replace(phoneRegex, (match) => {
+      // If this number is already inside an anchor tag, leave it alone
+      if (html.includes(`>${match}</a>`)) {
+        return match;
+      }
+      const tel = match.replace(/[\s\-]/g, '');
+      return `<a href="tel:${tel}" class="text-primary underline">${match}</a>`;
+    });
+
+    return html;
+  }
+
+  // Lightweight markdown cleanup so AI-generated rich_text doesn't show
+  // raw "*" stars or markdown syntax in the UI. We keep line breaks so the
+  // layout still feels structured, but strip list markers and bold/italic
+  // delimiters.
+  function normalizeRichText(str) {
+    if (!str) return '';
+    let text = String(str);
+
+    // Remove leading markdown heading symbols and bullet markers.
+    text = text.replace(/^\s*#+\s*/gm, '');      // "# Heading"
+    text = text.replace(/^\s*[-*]\s+/gm, '');    // "* bullet" or "- bullet"
+    text = text.replace(/^\s*\d+\.\s+/gm, '');   // "1. bullet"
+
+    // Strip common bold / italic markers while keeping the inner content.
+    text = text.replace(/\*\*(.*?)\*\*/g, '$1'); // **bold**
+    text = text.replace(/\*(.*?)\*/g, '$1');     // *italic* or stray *
+    text = text.replace(/_(.*?)_/g, '$1');       // _italic_
+
+    return text;
+  }
+
+  // Briefly highlight a section to show that an AI action just updated or
+  // applied something to it.
+  function flashElement(el) {
+    if (!el) return;
+    el.classList.add('ai-flash', 'animate-pulse');
+    setTimeout(() => {
+      el.classList.remove('ai-flash', 'animate-pulse');
+    }, 1200);
+  }
+
+  // Some Gemini responses encode strings as objects with numeric keys, e.g.:
+  // { "0": "F", "1": "l", "2": "a", ... } for "Flatbread".
+  // Normalize those into regular strings so the UI doesn't show one line per character.
+  function normalizeCharObjectToString(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    const entries = Object.entries(value);
+    if (!entries.length) return value;
+    const allNumericKeysSingleChars = entries.every(([k, v]) => {
+      return /^\d+$/.test(k) && typeof v === 'string' && v.length === 1;
+    });
+    if (!allNumericKeysSingleChars) return value;
+    const sorted = entries.sort((a, b) => Number(a[0]) - Number(b[0]));
+    return sorted.map(([, v]) => v).join('');
+  }
+
+  // Derive a smarter title when the model didn't provide one.
+  function deriveTitle(extraction, raw) {
+    if (extraction.title && extraction.title.trim().length > 0) {
+      return extraction.title;
+    }
+
+    const category = (extraction.category || '').toLowerCase();
+
+    if (category === 'travel') {
+      // Try primary destination fields on the structured object
+      let destination =
+        raw.destination ||
+        raw.destination_location ||
+        raw.primary_destination ||
+        null;
+
+      // Fall back to additional_context fields like "Destination Location"
+      if (!destination && raw.additional_context && typeof raw.additional_context === 'object') {
+        const ac = raw.additional_context;
+        destination =
+          ac['Destination Location'] ||
+          ac['destination_location'] ||
+          ac['Destination'] ||
+          null;
+      }
+
+      if (destination) {
+        return `Trip to ${destination}`;
+      }
+      return 'Untitled Travel';
+    }
+
+    // Generic fallback
+    return 'Untitled ' + capitalize(extraction.category || 'Extraction');
+  }
+
+  // Helper to apply an AI reconstruction plan that focuses on turning the
+  // leftover / generic additional_context into ONE rich section. Instead of
+  // rebuilding all structured fields, we:
+  //   - optionally refresh heading/subtitle
+  //   - leave any populated Key Items / Details / Steps sections intact
+  //   - replace only the Additional Context area with the AI-generated rich block.
+  function applyReconstructPlan(plan) {
+    if (!plan || !plan.rich_text || typeof plan.rich_text !== 'string') return;
+
+    const extraction = getExtraction();
+    if (!extraction) return;
+
+    if (plan.heading) {
+      extraction.title = plan.heading;
+      const titleEl = document.getElementById('gx-title');
+      if (titleEl) titleEl.textContent = plan.heading;
+    }
+    if (plan.subtitle) {
+      extraction.description = plan.subtitle;
+      const summaryEl = document.getElementById('gx-summary');
+      if (summaryEl) summaryEl.textContent = plan.subtitle;
+    }
+
+    // Persist updated heading/subtitle back into the global holder so
+    // subsequent interactions see the new values.
+    if (window.__EXTRACTION__ && window.__EXTRACTION__.extraction) {
+      window.__EXTRACTION__.extraction = extraction;
+    }
+
+    // Show Additional Context and replace its content with the AI-rich block.
+    const additionalSection = document.getElementById('gx-additional-section');
+    const additionalContainer = document.getElementById('gx-additional-context');
+    if (additionalSection && additionalContainer) {
+      additionalSection.classList.remove('hidden');
+      
+      // Preserve keyframes before clearing
+      const raw = extraction.raw_data || {};
+      const supermemoryKeyframes = raw._keyframes || [];
+      
+      additionalContainer.innerHTML = '';
+
+      const wrapper = document.createElement('div');
+      wrapper.className =
+        'flex flex-col gap-2 border border-amber-400/60 bg-amber-500/5 rounded-xl p-4 shadow-[0_0_40px_rgba(245,197,24,0.35)]';
+
+      const labelP = document.createElement('p');
+      labelP.className = 'text-amber-200 text-xs font-semibold tracking-wide uppercase';
+      labelP.textContent = 'Agentic Reconstruction';
+      wrapper.appendChild(labelP);
+
+      const bodyP = document.createElement('p');
+      bodyP.className = 'text-white text-sm leading-relaxed whitespace-pre-line';
+      bodyP.innerHTML = linkifyText(normalizeRichText(plan.rich_text));
+      wrapper.appendChild(bodyP);
+
+      additionalContainer.appendChild(wrapper);
+      
+      // Re-add keyframes section after the reconstruction if available
+      if (supermemoryKeyframes.length > 0) {
+        additionalContainer.appendChild(createSupermemoryKeyframesSection(supermemoryKeyframes));
+      }
+
+      // Subtle flash to show something changed.
+      flashElement(additionalSection);
+    }
+  }
+
+  // Create a rich keyframes gallery for Supermemory images
+  function createSupermemoryKeyframesSection(keyframes) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex flex-col gap-3 border border-white/5 rounded-lg p-3';
+    
+    const labelP = document.createElement('p');
+    labelP.className = 'text-[#90b2cb] text-sm font-normal';
+    labelP.textContent = `Keyframes (${keyframes.length})`;
+    wrapper.appendChild(labelP);
+    
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-2 gap-3';
+    
+    keyframes.forEach((keyframe, index) => {
+      const imageUrl = keyframe.url || '';
+      const title = keyframe.title || `Frame ${keyframe.frame_number || index + 1}`;
+      const frameNumber = keyframe.frame_number || keyframe.metadata?.frame_index || index;
+      
+      const card = document.createElement('div');
+      card.className = 'flex flex-col gap-2 bg-[#1a2730] rounded-lg p-2 hover:bg-[#1e2f3a] transition-colors cursor-pointer';
+      
+      const imgWrapper = document.createElement('div');
+      imgWrapper.className = 'relative group';
+      
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      img.alt = title;
+      img.className = 'w-full h-32 object-cover rounded-lg';
+      img.onerror = () => {
+        img.src = 'https://via.placeholder.com/200x128?text=Image+Not+Found';
+      };
+      
+      const overlay = document.createElement('div');
+      overlay.className = 'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center';
+      overlay.innerHTML = '<span class="material-symbols-outlined text-white text-3xl">zoom_in</span>';
+      
+      imgWrapper.appendChild(img);
+      imgWrapper.appendChild(overlay);
+      
+      const titleP = document.createElement('p');
+      titleP.className = 'text-white text-xs font-medium truncate';
+      titleP.textContent = title;
+      titleP.title = title;
+      
+      const frameP = document.createElement('p');
+      frameP.className = 'text-white/40 text-xs';
+      frameP.textContent = `Frame #${frameNumber}`;
+      
+      card.appendChild(imgWrapper);
+      card.appendChild(titleP);
+      card.appendChild(frameP);
+      
+      // Click to open modal
+      card.addEventListener('click', () => {
+        openKeyframeModal(keyframe);
+      });
+      
+      grid.appendChild(card);
+    });
+    
+    wrapper.appendChild(grid);
+    return wrapper;
+  }
+  
+  function openKeyframeModal(keyframe) {
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+    
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black/90 z-50 overflow-y-auto';
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        document.body.style.overflow = '';
+        modal.remove();
+      }
+    };
+    
+    // Create a flex container for centering
+    const flexContainer = document.createElement('div');
+    flexContainer.className = 'min-h-full flex items-center justify-center p-4';
+    flexContainer.onclick = (e) => {
+      if (e.target === flexContainer) {
+        document.body.style.overflow = '';
+        modal.remove();
+      }
+    };
+    
+    const imageUrl = keyframe.url || '';
+    const title = keyframe.title || 'Keyframe';
+    const summary = keyframe.summary || '';
+    const timestamp = Date.now();
+    
+    flexContainer.innerHTML = `
+      <div class="relative w-full max-w-4xl flex flex-col" onclick="event.stopPropagation()">
+        <button class="absolute -top-10 right-0 text-white hover:text-red-500 transition-colors z-10" onclick="document.body.style.overflow=''; this.closest('.fixed').remove()">
+          <span class="material-symbols-outlined text-3xl">close</span>
+        </button>
+        <img src="${escapeHtml(imageUrl)}" 
+             alt="${escapeHtml(title)}" 
+             class="w-full max-h-[50vh] object-contain rounded-lg bg-black"
+        />
+        <div class="bg-[#182934] rounded-lg p-4 mt-4">
+          <p class="text-white font-bold mb-2">${escapeHtml(title)}</p>
+          ${summary ? `<p class="text-white/70 text-sm">${escapeHtml(summary)}</p>` : ''}
+        </div>
+        <div class="flex gap-2 justify-center mt-4 flex-wrap">
+          <a href="${escapeHtml(imageUrl)}" 
+             target="_blank" 
+             class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">open_in_new</span>
+            Open Image
+          </a>
+          <button id="google-lens-btn-${timestamp}" 
+             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">search</span>
+            Find Similar (Google Lens)
+          </button>
+        </div>
+        <div id="lens-results-${timestamp}" class="mt-4 hidden w-full"></div>
+      </div>
+    `;
+    
+    modal.appendChild(flexContainer);
+    document.body.appendChild(modal);
+    
+    // Add event listener for Google Lens search
+    const googleLensBtn = document.getElementById(`google-lens-btn-${timestamp}`);
+    const resultsDiv = document.getElementById(`lens-results-${timestamp}`);
+    
+    if (googleLensBtn && resultsDiv) {
+        googleLensBtn.addEventListener('click', async () => {
+            googleLensBtn.disabled = true;
+            googleLensBtn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">refresh</span> Searching...';
+            
+            try {
+                const resp = await fetch('/api/products/lens/search-by-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_url: imageUrl })
+                });
+                
+                if (!resp.ok) {
+                    const error = await resp.json().catch(() => ({}));
+                    throw new Error(error.detail || 'Failed to search products');
+                }
+                
+                const data = await resp.json();
+                displayLensResults(resultsDiv, data);
+                
+            } catch (error) {
+                resultsDiv.classList.remove('hidden');
+                resultsDiv.innerHTML = `
+                    <div class="bg-[#182934] rounded-lg p-4">
+                        <p class="text-red-500 text-center">${escapeHtml(error.message)}</p>
+                    </div>
+                `;
+            } finally {
+                googleLensBtn.disabled = false;
+                googleLensBtn.innerHTML = '<span class="material-symbols-outlined text-sm">search</span> Find Similar (Google Lens)';
+            }
+        });
+    }
+}
+
+  // Display Google Lens results
+  function displayLensResults(container, data) {
+      container.classList.remove('hidden');
+      
+      const products = data.product_matches || [];
+      const visuals = data.visual_matches || [];
+      const googleLensUrl = data.google_lens_url || '';
+      
+      if (products.length === 0 && visuals.length === 0) {
+          container.innerHTML = `
+              <div class="bg-[#182934] rounded-lg p-4 w-full">
+                  <p class="text-white/70 text-center">No similar products found</p>
+                  ${googleLensUrl ? `
+                      <div class="flex justify-center mt-3">
+                        <a href="${escapeHtml(googleLensUrl)}" 
+                          target="_blank"
+                          class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors">
+                            <span class="material-symbols-outlined text-sm">open_in_new</span>
+                            View in Google Lens
+                        </a>
+                      </div>
+                  ` : ''}
+              </div>
+          `;
+          return;
+      }
+      
+      let html = '<div class="bg-[#182934] rounded-lg p-4 w-full">';
+      html += '<div class="flex items-center justify-between mb-3 flex-wrap gap-2">';
+      html += '<h3 class="text-white font-bold text-base">Similar Products & Images</h3>';
+      if (googleLensUrl) {
+          html += `
+              <a href="${escapeHtml(googleLensUrl)}" 
+                target="_blank"
+                class="text-primary hover:text-blue-400 text-xs flex items-center gap-1 whitespace-nowrap">
+                  <span class="material-symbols-outlined text-sm">open_in_new</span>
+                  View All
+              </a>
+          `;
+      }
+      html += '</div>';
+      
+      // Show product matches first (they have prices)
+      if (products.length > 0) {
+          html += '<p class="text-white/70 text-sm mb-2">Products for Sale:</p>';
+          html += '<div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">';
+          products.slice(0, 6).forEach(product => {
+              const priceDisplay = product.price && product.currency 
+                  ? `${escapeHtml(product.price)} ${escapeHtml(product.currency)}`
+                  : product.price 
+                      ? escapeHtml(product.price)
+                      : '';
+              
+              html += `
+                  <a href="${escapeHtml(product.link || '#')}" 
+                    target="_blank"
+                    class="flex flex-col gap-2 bg-[#1a2730] rounded-lg p-2 hover:bg-[#1e2f3a] transition-colors">
+                      <div class="relative">
+                          <img src="${escapeHtml(product.thumbnail || '')}" 
+                              class="w-full h-24 object-cover rounded"
+                              onerror="this.src='https://via.placeholder.com/150?text=No+Image'"
+                              loading="lazy"/>
+                          ${priceDisplay ? `
+                              <div class="absolute bottom-1 left-1 right-1 bg-black/80 backdrop-blur-sm rounded px-2 py-1">
+                                  <p class="text-green-400 text-xs font-bold text-center">${priceDisplay}</p>
+                              </div>
+                          ` : ''}
+                      </div>
+                      <div class="flex flex-col gap-1">
+                          <p class="text-white text-xs font-medium line-clamp-2" title="${escapeHtml(product.title || 'Product')}">${escapeHtml(product.title || 'Product')}</p>
+                          <p class="text-white/50 text-xs truncate">${escapeHtml(product.source || '')}</p>
+                      </div>
+                  </a>
+              `;
+          });
+          html += '</div>';
+      }
+      
+      // Show visual matches
+      if (visuals.length > 0) {
+          html += '<p class="text-white/70 text-sm mb-2">Similar Images:</p>';
+          html += '<div class="grid grid-cols-2 md:grid-cols-3 gap-3">';
+          visuals.slice(0, 6).forEach(visual => {
+              const priceDisplay = visual.price && visual.currency 
+                  ? `${escapeHtml(visual.price)} ${escapeHtml(visual.currency)}`
+                  : visual.price 
+                      ? escapeHtml(visual.price)
+                      : '';
+              
+              html += `
+                  <a href="${escapeHtml(visual.link || '#')}" 
+                    target="_blank"
+                    class="flex flex-col gap-2 bg-[#1a2730] rounded-lg p-2 hover:bg-[#1e2f3a] transition-colors">
+                      <div class="relative">
+                          <img src="${escapeHtml(visual.thumbnail || '')}" 
+                              class="w-full h-24 object-cover rounded"
+                              onerror="this.src='https://via.placeholder.com/150?text=No+Image'"
+                              loading="lazy"/>
+                          ${priceDisplay ? `
+                              <div class="absolute bottom-1 left-1 right-1 bg-black/80 backdrop-blur-sm rounded px-2 py-1">
+                                  <p class="text-green-400 text-xs font-bold text-center">${priceDisplay}</p>
+                              </div>
+                          ` : ''}
+                      </div>
+                      <div class="flex flex-col gap-1">
+                          <p class="text-white text-xs font-medium line-clamp-2" title="${escapeHtml(visual.title || 'Similar')}">${escapeHtml(visual.title || 'Similar')}</p>
+                          <p class="text-white/50 text-xs truncate">${escapeHtml(visual.source || '')}</p>
+                      </div>
+                  </a>
+              `;
+          });
+          html += '</div>';
+      }
+      
+      html += '</div>';
+      container.innerHTML = html;
+  }
+
+  function hydrateGenericExtraction() {
+    const extraction = getExtraction();
+    if (!extraction) {
+      console.warn('No extraction data found on window.__EXTRACTION__');
+      return;
+    }
+
+    // Prefer GenericExtraction.raw_data when available, otherwise treat
+    // the full object as the raw payload so the UI still shows something.
+    const raw = (extraction.raw_data && typeof extraction.raw_data === 'object')
+      ? extraction.raw_data
+      : extraction;
+
+    // Lightweight normalization pass: if the main fields we rely on for sections
+    // are missing or empty, try to backfill them from additional_context keys.
+    // This lets us reuse good data that Gemini may have placed there without
+    // needing another model call.
+    if (raw.additional_context && typeof raw.additional_context === 'object') {
+      const ac = raw.additional_context;
+
+      // Ingredients / items for recipes and generic lists
+      if (
+        (!Array.isArray(raw.ingredients) || !raw.ingredients.length) &&
+        (Array.isArray(ac.ingredients) || Array.isArray(ac.Ingredients))
+      ) {
+        raw.ingredients = Array.isArray(ac.ingredients)
+          ? ac.ingredients
+          : ac.Ingredients;
+      }
+
+      // Generic items fallback from Additional Context → Items
+      if (
+        (!Array.isArray(raw.items) || !raw.items.length) &&
+        (Array.isArray(ac.items) || Array.isArray(ac.Items))
+      ) {
+        const src = Array.isArray(ac.items) ? ac.items : ac.Items;
+        raw.items = src
+          .map((entry) => {
+            if (typeof entry === 'string') {
+              try {
+                return JSON.parse(entry);
+              } catch {
+                return entry;
+              }
+            }
+            return entry;
+          })
+          .filter((v) => v !== null && v !== undefined);
+      }
+
+      // Instructions / steps
+      if (
+        (!Array.isArray(raw.instructions) || !raw.instructions.length) &&
+        (Array.isArray(ac.instructions) ||
+          Array.isArray(ac.Instructions) ||
+          Array.isArray(ac.steps) ||
+          Array.isArray(ac.Steps))
+      ) {
+        raw.instructions =
+          (Array.isArray(ac.instructions) && ac.instructions) ||
+          (Array.isArray(ac.Instructions) && ac.Instructions) ||
+          (Array.isArray(ac.steps) && ac.steps) ||
+          (Array.isArray(ac.Steps) && ac.Steps) ||
+          raw.instructions;
+      }
+
+      // Servings / basic details
+      if (!raw.servings && (ac.servings || ac.Servings)) {
+        raw.servings = ac.servings || ac.Servings;
+      }
+    }
+
+  // Helper to apply an AI enhancement plan (heading, subtitle,
+  // bullets, suggested actions) returned by the /api/agents/plan or
+  // /api/agents/intelligence-plan endpoint. This reuses the existing
+  // page chrome instead of showing an alert.
+    function applyAiPlan(plan) {
+      if (!plan) return;
+
+      const aiSection = document.getElementById('gx-ai-plan-section');
+      const aiHeading = document.getElementById('gx-ai-heading');
+      const aiSubtitle = document.getElementById('gx-ai-subtitle');
+      const aiBulletsWrapper = document.getElementById('gx-ai-bullets-wrapper');
+      const aiBullets = document.getElementById('gx-ai-bullets');
+      const aiActionsWrapper = document.getElementById('gx-ai-actions-wrapper');
+      const aiActions = document.getElementById('gx-ai-actions');
+
+      // Update top hero title/summary to the AI heading/subtitle if present,
+      // but only when the existing values look sparse or generic. Also update
+      // the in-memory extraction object so subsequent actions use the
+      // enhanced values.
+      const heroTitleEl = document.getElementById('gx-title');
+      const heroSummaryEl = document.getElementById('gx-summary');
+
+      if (plan.heading && heroTitleEl) {
+        const currentTitle = (heroTitleEl.textContent || '').trim();
+        const defaultTitle = deriveTitle(extraction, raw);
+        const looksUntitled =
+          !extraction.title ||
+          currentTitle.toLowerCase().startsWith('untitled') ||
+          currentTitle === defaultTitle;
+
+        if (looksUntitled) {
+          heroTitleEl.textContent = plan.heading;
+          extraction.title = plan.heading;
+        }
+      }
+
+      if (plan.subtitle && heroSummaryEl) {
+        const currentSummary = (heroSummaryEl.textContent || '').trim();
+        const genericSummary =
+          'AI-generated generic view. Some fields could not be fully structured.';
+        const looksGeneric =
+          !extraction.description ||
+          currentSummary === '' ||
+          currentSummary === genericSummary;
+
+        if (looksGeneric) {
+          heroSummaryEl.textContent = plan.subtitle;
+          extraction.description = plan.subtitle;
+        }
+      }
+
+      if (aiSection) {
+        aiSection.classList.remove('hidden');
+      }
+      if (aiHeading) {
+       // aiHeading.textContent = plan.heading || '';
+      }
+      if (aiSubtitle) {
+        //aiSubtitle.textContent = plan.subtitle || '';
+      }
+
+      if (aiBullets && aiBulletsWrapper) {
+        aiBullets.innerHTML = '';
+        if (Array.isArray(plan.bullets) && plan.bullets.length) {
+          plan.bullets.forEach((b) => {
+            const li = document.createElement('li');
+            li.textContent = b;
+            aiBullets.appendChild(li);
+          });
+          aiBulletsWrapper.classList.remove('hidden');
+        } else {
+          aiBulletsWrapper.classList.add('hidden');
+        }
+      }
+
+      if (aiActions && aiActionsWrapper) {
+        aiActions.innerHTML = '';
+        // For workout reels, override the model's suggested actions and show
+        // a single, high-signal "Start workout" button that launches the
+        // guided timer view directly.
+        if (category === 'workout' && window.__REEL_ID__) {
+          const li = document.createElement('li');
+          li.className = 'flex flex-col gap-0.5';
+
+          const btn = document.createElement('button');
+          btn.className =
+            'inline-flex items-center gap-1 rounded-full bg-white/10 hover:bg-white/20 px-3 py-1 text-xs font-semibold text-white transition';
+          btn.textContent = 'Start workout';
+
+          const descEl = document.createElement('p');
+          descEl.className = 'text-white/70 text-[11px] leading-snug';
+          descEl.textContent = 'Open the guided workout timer using the extracted exercises.';
+
+          btn.addEventListener('click', () => {
+            const id = window.__REEL_ID__;
+            if (!id) return;
+            window.location.href = `/extracted-view?reel_id=${encodeURIComponent(id)}`;
+          });
+
+          li.appendChild(btn);
+          li.appendChild(descEl);
+          aiActions.appendChild(li);
+          aiActionsWrapper.classList.remove('hidden');
+          // Highlight the AI section to emphasize this primary action.
+          flashElement(aiSection);
+        } else if (Array.isArray(plan.suggested_actions) && plan.suggested_actions.length) {
+          plan.suggested_actions.forEach((a) => {
+            if (!a || !a.label) return;
+            const li = document.createElement('li');
+            li.className = 'flex flex-col gap-0.5';
+
+            const btn = document.createElement('button');
+            btn.className =
+              'inline-flex items-center gap-1 rounded-full bg-white/10 hover:bg-white/20 px-3 py-1 text-xs font-semibold text-white transition';
+            btn.textContent = a.label;
+
+            const desc = a.description
+              ? a.description
+              : '';
+            const descEl = document.createElement('p');
+            descEl.className = 'text-white/70 text-[11px] leading-snug';
+            // Hide "URL: " prefix from display - it's just for internal use
+            const displayDesc = desc.startsWith('URL: ') ? '' : desc;
+            descEl.textContent = displayDesc;
+
+            btn.addEventListener('click', () => {
+              // Check if the action has a structured URL in the description
+              // (format: "URL: <url>")
+              const desc = a.description || '';
+              const urlMatch = desc.match(/^URL:\s*(.+)$/);
+              
+              if (urlMatch && urlMatch[1]) {
+                // We have a structured action with a URL - open it directly
+                const url = urlMatch[1].trim();
+                window.open(url, '_blank');
+              } else {
+                // Fallback to keyword-based handling for legacy actions
+                const lower = `${a.label} ${desc}`.toLowerCase();
+
+                // For product reels, try to map "search" suggestions to a simple
+                // Google search using the AI heading or extraction title.
+                if (
+                  category === 'product' &&
+                  (lower.includes('search') || lower.includes('find similar') || lower.includes('visually'))
+                ) {
+                  const q =
+                    plan.heading ||
+                    extraction.title ||
+                    'products from this reel';
+                  const url = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+                  window.open(url, '_blank');
+                } else if (
+                  category === 'travel' &&
+                  (lower.includes('visit') || lower.includes('explore') || lower.includes('itinerary'))
+                ) {
+                  // For travel, copy a compact itinerary summary to clipboard so
+                  // the user can paste it into maps/notes.
+                  const textLines = [];
+                  textLines.push(plan.heading || extraction.title || 'Trip plan');
+                  if (plan.subtitle) textLines.push(plan.subtitle);
+                  if (Array.isArray(plan.bullets) && plan.bullets.length) {
+                    textLines.push('', 'Highlights:');
+                    plan.bullets.forEach((b) => textLines.push('- ' + b));
+                  }
+                  const text = textLines.join('\n');
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text);
+                    alert('Itinerary summary copied. Paste into Maps/notes to plan your trip.');
+                  } else {
+                    alert('Clipboard not available in this browser.');
+                  }
+                } else {
+                  // Generic fallback: copy the label + description so the user can
+                  // paste into search, chat, or notes.
+                  const text = desc
+                    ? `${a.label} – ${desc}`
+                    : a.label;
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text);
+                    alert('Suggestion copied. Paste into search, chat, or notes.');
+                  } else {
+                    alert(text);
+                  }
+                }
+              }
+
+              // Visually indicate that this suggestion has been applied.
+              btn.disabled = true;
+              btn.classList.add('opacity-60', 'cursor-default');
+              if (descEl && desc) {
+                const displayDesc = urlMatch ? desc.replace(/^URL:\s*/, '') : desc;
+                descEl.textContent = displayDesc + ' (applied)';
+              }
+              flashElement(aiSection);
+            });
+
+            li.appendChild(btn);
+            if (displayDesc) {
+              li.appendChild(descEl);
+            }
+            aiActions.appendChild(li);
+          });
+          aiActionsWrapper.classList.remove('hidden');
+        } else {
+          aiActionsWrapper.classList.add('hidden');
+        }
+      }
+    }
+
+    // Header
+    const titleEl = document.getElementById('gx-title');
+    if (titleEl) {
+      titleEl.textContent = deriveTitle(extraction, raw);
+      // Remove loading skeleton styles once the real title is known.
+      titleEl.classList.remove(
+        'bg-white/10',
+        'text-transparent',
+        'animate-pulse',
+        'rounded-md',
+        'px-1'
+      );
+    }
+
+    const catEl = document.getElementById('gx-category');
+    if (catEl) {
+      catEl.textContent = capitalize(extraction.category || 'Generic');
+    }
+
+    const confLabel = mapConfidenceLabel(extraction.confidence_score);
+    const confLabelEl = document.getElementById('gx-confidence-label');
+    if (confLabelEl) {
+      confLabelEl.textContent = confLabel;
+    }
+
+    const summaryEl = document.getElementById('gx-summary');
+    if (summaryEl) {
+      if (extraction.description) {
+        summaryEl.textContent = extraction.description;
+      } else {
+        summaryEl.textContent =
+          'AI-generated generic view. Some fields could not be fully structured.';
+      }
+    }
+
+    const sourceBtn = document.getElementById('gx-source-link');
+    const watchSection = document.getElementById('gx-watch-section');
+    const watchUrlEl = document.getElementById('gx-watch-url');
+    const watchBtn = document.getElementById('gx-watch-button');
+
+    if (extraction.source_url) {
+      const openReel = () => window.open(extraction.source_url, '_blank');
+
+      if (sourceBtn) {
+      sourceBtn.classList.remove('hidden');
+        sourceBtn.onclick = openReel;
+      }
+
+      if (watchSection && watchUrlEl && watchBtn) {
+        watchSection.classList.remove('hidden');
+        watchUrlEl.textContent = extraction.source_url;
+        watchUrlEl.href = extraction.source_url;
+        watchBtn.onclick = openReel;
+      }
+    }
+
+    // Visual context keyframe (for all categories, but especially useful for products)
+    const visualSection = document.getElementById('gx-visual-section');
+    const thumbImg = document.getElementById('gx-thumbnail');
+    const thumbUrl = window.__THUMBNAIL_URL__;
+    if (visualSection && thumbImg && thumbUrl) {
+      visualSection.classList.remove('hidden');
+      thumbImg.src = thumbUrl;
+      thumbImg.classList.remove('hidden');
+    }
+
+    // Wire up the global "Agentic Enhance" button for all categories.
+    const agenticBtn = document.getElementById('gx-agentic-enhance');
+    if (agenticBtn && window.__REEL_ID__) {
+      agenticBtn.addEventListener('click', async () => {
+        try {
+          agenticBtn.disabled = true;
+          agenticBtn.classList.remove('animate-pulse');
+          const originalText = agenticBtn.querySelector('span:nth-child(2)');
+          const originalLabel = originalText ? originalText.textContent : '';
+          if (originalText) originalText.textContent = 'Enhancing...';
+
+          const documentId = window.__REEL_ID__;
+          // Prefer the multi-agent intelligence plan when available.
+          const resp = await fetch(
+            `/api/agents/intelligence-plan/${encodeURIComponent(documentId)}`
+          );
+          if (!resp.ok) {
+            const err = await resp.text();
+            alert('Agentic enhancement failed: ' + err.slice(0, 200));
+          } else {
+            const plan = await resp.json();
+            applyAiPlan(plan);
+          }
+
+          if (originalText) originalText.textContent = originalLabel || 'Agentic Enhance';
+        } catch (e) {
+          console.error(e);
+          alert('Error contacting Agentic Enhance API');
+        } finally {
+          agenticBtn.disabled = false;
+          agenticBtn.classList.add('animate-pulse');
+        }
+      });
+    }
+
+    // Wire up the global "AI Reconstruct" button to ask the backend for a
+    // fully cleaned/restructured raw_data object, then re-render the page.
+    const reconstructBtn = document.getElementById('gx-agentic-reconstruct');
+    const reconstructLoading = document.getElementById('gx-reconstruct-loading');
+
+    async function runReconstruct(auto = false) {
+      if (!window.__REEL_ID__) return;
+      if (!reconstructBtn) return;
+      try {
+        reconstructBtn.disabled = true;
+        reconstructBtn.classList.remove('animate-pulse');
+        const originalText = reconstructBtn.querySelector('span:nth-child(2)');
+        const originalLabel = originalText ? originalText.textContent : '';
+        if (originalText) originalText.textContent = 'Reconstructing...';
+        if (reconstructLoading) reconstructLoading.classList.remove('hidden');
+
+        const documentId = window.__REEL_ID__;
+        const resp = await fetch(
+          `/api/agents/reconstruct/${encodeURIComponent(documentId)}`
+        );
+        if (!resp.ok) {
+          const err = await resp.text();
+          if (!auto) {
+            alert('AI Reconstruct failed: ' + err.slice(0, 200));
+          } else {
+            console.error('AI Reconstruct failed:', err);
+          }
+        } else {
+          const plan = await resp.json();
+          applyReconstructPlan(plan);
+        }
+
+        if (originalText) originalText.textContent = originalLabel || 'AI Reconstruct';
+      } catch (e) {
+        console.error(e);
+        if (!auto) {
+          alert('Error contacting AI Reconstruct API');
+        }
+      } finally {
+        reconstructBtn.disabled = false;
+        reconstructBtn.classList.add('animate-pulse');
+        if (reconstructLoading) reconstructLoading.classList.add('hidden');
+      }
+    }
+
+    if (reconstructBtn && window.__REEL_ID__) {
+      reconstructBtn.addEventListener('click', () => runReconstruct(false));
+      // Automatically run Agentic Reconstruct once on initial load so the user
+      // sees the improved view without needing to click.
+      if (!window.__AUTO_RECONSTRUCTED__) {
+        window.__AUTO_RECONSTRUCTED__ = true;
+        runReconstruct(true);
+      }
+    }
+
+    // Key Items / Ingredients / Products / Activities / Exercises (generic list of primary objects)
+    const itemsSection = document.getElementById('gx-key-items-section');
+    const itemsTitleEl = document.getElementById('gx-key-items-title');
+    const itemsContainer = document.getElementById('gx-items');
+
+    const category = (extraction.category || 'generic').toLowerCase();
+
+    // For product reels, Gemini sometimes places product info under
+    // raw.products, and sometimes under additional_context.Items as
+    // JSON strings. Normalize that here so the UI can treat them
+    // consistently.
+    let productsForView = [];
+    if (category === 'product') {
+      const fromProducts = Array.isArray(raw.products) ? raw.products : [];
+      let fromContext = [];
+      const ac =
+        raw.additional_context && typeof raw.additional_context === 'object'
+          ? raw.additional_context
+          : null;
+      if (ac) {
+        const candidates = ac.products || ac.Products || ac.items || ac.Items;
+        if (Array.isArray(candidates)) {
+          fromContext = candidates
+            .map((entry) => {
+              if (typeof entry === 'string') {
+                try {
+                  return JSON.parse(entry);
+                } catch {
+                  return null;
+                }
+              }
+              return entry && typeof entry === 'object' ? entry : null;
+            })
+            .filter(Boolean);
+        }
+      }
+      // Prefer explicit products, then contextual items
+      productsForView = fromProducts.length ? fromProducts : fromContext;
+
+      // Filter out entries that have no meaningful product signal at all
+      // (e.g., product_names=[], brand_names=[], product_categories=[]
+      // with only a generic additional_context description). In that case,
+      // we'll lean on the Additional Context section instead of showing
+      // an empty bullet card under "Products".
+      if (productsForView.length) {
+        productsForView = productsForView.filter((p) => {
+          const names = Array.isArray(p.product_names)
+            ? p.product_names
+            : p.product_names
+              ? [p.product_names]
+              : [];
+          const brands = Array.isArray(p.brand_names)
+            ? p.brand_names
+            : p.brand_names
+              ? [p.brand_names]
+              : [];
+          const cats = Array.isArray(p.product_categories)
+            ? p.product_categories
+            : p.product_categories
+              ? [p.product_categories]
+              : [];
+          const hasName = (names && names.length) || p.name || p.title;
+          const hasBrand = brands && brands.length;
+          const hasCats = cats && cats.length;
+          return Boolean(hasName || hasBrand || hasCats);
+        });
+      }
+    }
+
+    // Prefer explicit ingredients/activities/products/exercises, then generic items
+    let items = [];
+    if (Array.isArray(raw.ingredients) && raw.ingredients.length) {
+      items = raw.ingredients;
+      if (itemsTitleEl) itemsTitleEl.textContent = 'Ingredients';
+    } else if (category === 'travel' && Array.isArray(raw.activities) && raw.activities.length) {
+      items = raw.activities;
+      if (itemsTitleEl) itemsTitleEl.textContent = 'Things To Do';
+    } else if (category === 'product' && productsForView.length) {
+      items = productsForView;
+      if (itemsTitleEl) itemsTitleEl.textContent = 'Products';
+    } else if (category === 'workout' && Array.isArray(raw.exercises) && raw.exercises.length) {
+      items = raw.exercises;
+      if (itemsTitleEl) itemsTitleEl.textContent = 'Exercises';
+    } else if (Array.isArray(raw.items) && raw.items.length) {
+      items = raw.items;
+      if (itemsTitleEl) itemsTitleEl.textContent = 'Key Items';
+    }
+
+    if (itemsContainer && itemsSection) {
+      if (!items.length) {
+        itemsSection.classList.add('hidden');
+      } else {
+        itemsContainer.innerHTML = '';
+
+        items.forEach((rawItem) => {
+          // Normalize weird character-encoded objects and simple strings
+          // into a common { name: ... } shape so recipes like:
+          // {0:"F",1:"l",...} render as "Flatbread" instead of one line per letter.
+          let item = rawItem;
+          const normalizedString = normalizeCharObjectToString(item);
+          if (typeof normalizedString === 'string') {
+            item = { name: normalizedString };
+          } else if (typeof item === 'string') {
+            item = { name: item };
+          }
+
+          const name =
+            item.name ||
+            item.product_name ||  // singular variant from some product JSONs
+            item.product_names ||
+            item.item ||
+            item.title ||
+            item.exercise ||
+            'Item';
+
+          const wrapper = document.createElement('div');
+          wrapper.className = 'flex flex-col gap-1 border border-white/5 rounded-lg p-3';
+
+          const nameP = document.createElement('p');
+          nameP.className = 'text-white text-base font-bold';
+          nameP.textContent = name;
+          wrapper.appendChild(nameP);
+
+          // For workouts, surface the most important training fields first
+          if (category === 'workout') {
+            const sets = item.sets;
+            const reps = item.reps;
+            const duration = item.duration_seconds || item.duration || item.time_per_set;
+            const rest = item.rest_seconds || item.rest || item.rest_between_sets;
+            const muscle = item.muscle_group || item.target_muscles;
+            const equip = item.equipment || item.machine;
+
+            const metaParts = [];
+            if (sets) metaParts.push(`${sets} sets`);
+            if (reps) metaParts.push(`${reps} reps`);
+            if (duration) metaParts.push(typeof duration === 'number' ? `${duration}s` : String(duration));
+            if (rest) metaParts.push(`Rest ${rest}s`);
+
+            if (metaParts.length) {
+              const metaP = document.createElement('p');
+              metaP.className = 'text-[#90b2cb] text-sm';
+              metaP.textContent = metaParts.join(' • ');
+              wrapper.appendChild(metaP);
+            }
+
+            if (muscle) {
+              const muscleP = document.createElement('p');
+              muscleP.className = 'text-[#90b2cb] text-xs';
+              muscleP.textContent = `Muscles: ${muscle}`;
+              wrapper.appendChild(muscleP);
+            }
+
+            if (equip) {
+              const equipP = document.createElement('p');
+              equipP.className = 'text-[#90b2cb] text-xs';
+              equipP.textContent = `Equipment: ${equip}`;
+              wrapper.appendChild(equipP);
+            }
+          } else if (category === 'product') {
+            const brand = item.brand || item.brand_name || item.brand_names;
+            const priceRaw = item.price || item.prices;
+            const currency = item.currency || item.price_currency;
+            const cats = item.product_categories || item.categories;
+            const metaParts = [];
+
+            if (brand && String(brand).toLowerCase() !== 'not visible') {
+              metaParts.push(brand);
+            }
+
+            // Only show price when it looks like a real numeric amount.
+            if (priceRaw !== undefined && priceRaw !== null) {
+              const cleaned = String(priceRaw).trim();
+              const numeric = Number(cleaned.replace(/[^\d.]/g, ''));
+              if (!Number.isNaN(numeric) && numeric > 0) {
+                const priceLabel = currency ? `${numeric} ${currency}` : `${numeric}`;
+                metaParts.push(priceLabel);
+              }
+            }
+
+            if (metaParts.length) {
+              const metaP = document.createElement('p');
+              metaP.className = 'text-[#90b2cb] text-sm';
+              metaP.textContent = metaParts.join(' • ');
+              wrapper.appendChild(metaP);
+            }
+
+            if (Array.isArray(cats) && cats.length) {
+              const catsP = document.createElement('p');
+              catsP.className = 'text-[#90b2cb] text-xs';
+              catsP.textContent = cats.join(', ');
+              wrapper.appendChild(catsP);
+            }
+          }
+
+          // Render all other scalar fields as full sentences
+          Object.entries(item).forEach(([key, value]) => {
+            if (key === 'name' || key === 'item' || key === 'exercise') return;
+            if (value === null || value === undefined || value === '') return;
+
+            if (
+              (category === 'workout' &&
+                [
+                  'sets',
+                  'reps',
+                  'duration_seconds',
+                  'duration',
+                  'time_per_set',
+                  'rest_seconds',
+                  'rest',
+                  'rest_between_sets',
+                  'muscle_group',
+                  'target_muscles',
+                  'equipment',
+                  'machine',
+                ].includes(key)) ||
+              (category === 'product' &&
+                [
+                  'product_names',
+                  'brand_names',
+                  'prices',
+                  'price',
+                  'currency',
+                  'product_categories',
+                  'categories',
+                ].includes(key))
+            ) {
+              // Already rendered in the category-specific summary above
+              return;
+            }
+
+            if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+              const line = document.createElement('p');
+              line.className = 'text-[#90b2cb] text-sm whitespace-pre-line';
+              const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+              line.textContent = `${label}: ${value}`;
+              wrapper.appendChild(line);
+            }
+          });
+
+          itemsContainer.appendChild(wrapper);
+        });
+      }
+    }
+
+    // Details / Metrics
+    const detailsSection = document.getElementById('gx-details-section');
+    const detailsContainer = document.getElementById('gx-details');
+    if (detailsSection && detailsContainer) {
+      const detailFields = [
+        { key: 'cuisine_type', label: 'Cuisine Type' },
+        { key: 'difficulty_level', label: 'Difficulty Level' },
+        { key: 'destination', label: 'Destination' },
+        { key: 'prep_time', label: 'Prep Time' },
+        { key: 'cook_time', label: 'Cook Time' },
+        { key: 'servings', label: 'Servings' },
+        { key: 'estimated_duration_minutes', label: 'Est. Duration', format: (v) => `${v} minutes` },
+        { key: 'music_tempo_bpm', label: 'Music Tempo', format: (v) => `${v} BPM` },
+        { key: 'budget', label: 'Estimated Budget' },
+      ];
+
+      const present = detailFields.filter(
+        (f) => raw[f.key] !== undefined && raw[f.key] !== null && raw[f.key] !== ''
+      );
+
+      const derivedDetails = [];
+      if (category === 'workout') {
+        const exCount = Array.isArray(raw.exercises)
+          ? raw.exercises.length
+          : Array.isArray(raw.items)
+            ? raw.items.length
+            : 0;
+        if (exCount) {
+          derivedDetails.push({
+            key: '__total_exercises',
+            label: 'Total Exercises',
+            value: exCount,
+          });
+        }
+        if (raw.total_rounds || raw.rounds) {
+          derivedDetails.push({
+            key: '__rounds',
+            label: 'Rounds',
+            value: raw.total_rounds || raw.rounds,
+          });
+        }
+      }
+
+      if (!present.length && !derivedDetails.length) {
+        detailsSection.classList.add('hidden');
+      } else {
+        detailsContainer.innerHTML = '';
+        present.forEach((f) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'flex flex-col';
+
+          const labelP = document.createElement('p');
+          labelP.className = 'text-[#90b2cb] text-sm font-normal';
+          labelP.textContent = f.label;
+
+          const valueP = document.createElement('p');
+          valueP.className = 'text-white text-base font-medium';
+          const value = f.format ? f.format(raw[f.key]) : raw[f.key];
+          valueP.textContent = value;
+
+          wrapper.appendChild(labelP);
+          wrapper.appendChild(valueP);
+          detailsContainer.appendChild(wrapper);
+        });
+
+        derivedDetails.forEach((f) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'flex flex-col';
+
+          const labelP = document.createElement('p');
+          labelP.className = 'text-[#90b2cb] text-sm font-normal';
+          labelP.textContent = f.label;
+
+          const valueP = document.createElement('p');
+          valueP.className = 'text-white text-base font-medium';
+          valueP.textContent = String(f.value);
+
+          wrapper.appendChild(labelP);
+          wrapper.appendChild(valueP);
+          detailsContainer.appendChild(wrapper);
+        });
+      }
+    }
+
+    // Steps / Instructions / Activities
+    const stepsSection = document.getElementById('gx-steps-section');
+    const stepsContainer = document.getElementById('gx-steps');
+    if (stepsSection && stepsContainer) {
+      let stepsSource = null;
+      if (Array.isArray(raw.instructions) && raw.instructions.length) {
+        stepsSource = raw.instructions;
+      } else if (Array.isArray(raw.steps) && raw.steps.length) {
+        stepsSource = raw.steps;
+      } else if (category === 'travel' && Array.isArray(raw.day_breakdown) && raw.day_breakdown.length) {
+        stepsSource = raw.day_breakdown;
+      }
+
+      if (!stepsSource || !stepsSource.length) {
+        stepsSection.classList.add('hidden');
+      } else {
+        stepsContainer.innerHTML = '';
+        stepsSource.forEach((step, idx) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'flex flex-col gap-1 border border-white/10 rounded-lg p-3';
+
+          let stepNum = idx + 1;
+          let description = '';
+          let duration = '';
+          let tools = [];
+
+          if (typeof step === 'string') {
+            description = step;
+          } else if (typeof step === 'object' && step !== null) {
+            stepNum = step.step || step.step_number || step.day || stepNum;
+            description = step.description || step.instruction || step.name || '';
+            duration =
+              step.duration ||
+              step.duration_minutes ||
+              step.estimated_duration ||
+              '';
+            tools =
+              step.utensils ||
+              step.tools_required ||
+              step.activities ||
+              [];
+          }
+
+          const header = document.createElement('div');
+          header.className = 'flex items-center justify-between';
+
+          const stepLabel = document.createElement('p');
+          stepLabel.className = 'text-[#90b2cb] text-xs font-medium';
+          stepLabel.textContent = `Step ${stepNum}`;
+
+          header.appendChild(stepLabel);
+
+          const descP = document.createElement('p');
+          descP.className = 'text-white text-sm font-medium';
+          descP.textContent = description;
+
+          wrapper.appendChild(header);
+          wrapper.appendChild(descP);
+
+          if (duration) {
+            const durP = document.createElement('p');
+            durP.className = 'text-[#90b2cb] text-xs';
+            durP.textContent = `Duration: ${duration}`;
+            wrapper.appendChild(durP);
+          }
+
+          if (Array.isArray(tools) && tools.length) {
+            const toolsP = document.createElement('p');
+            toolsP.className = 'text-[#90b2cb] text-xs';
+            toolsP.textContent = `Tools: ${tools.join(', ')}`;
+            wrapper.appendChild(toolsP);
+          }
+
+          stepsContainer.appendChild(wrapper);
+        });
+      }
+    }
+
+    // Additional Context (rich view, no hard cap)
+    const additionalSection = document.getElementById('gx-additional-section');
+    const additionalContainer = document.getElementById('gx-additional-context');
+    const additional = raw.additional_context && typeof raw.additional_context === 'object'
+      ? raw.additional_context
+      : null;
+
+    if (additionalSection && additionalContainer) {
+      const supermemoryKeyframes = raw._keyframes || [];
+      if (!additional || Object.keys(additional).length === 0) {
+        // If no additional context but we have keyframes, show them
+        if (supermemoryKeyframes.length > 0) {
+          additionalSection.classList.remove('hidden');
+          additionalContainer.innerHTML = '';
+          additionalContainer.appendChild(createSupermemoryKeyframesSection(supermemoryKeyframes));
+        } else {
+        additionalSection.classList.add('hidden');
+        }
+      } else {
+        const entries = Object.entries(additional).filter(([key, value]) => {
+          if (value === null || value === undefined) return false;
+          if (typeof value === 'string' && value.trim().toLowerCase() === 'null') return false;
+          if (Array.isArray(value) && value.length === 0) return false;
+          return true;
+        });
+
+        if (!entries.length) {
+          // If no entries but we have keyframes, show them
+          if (supermemoryKeyframes.length > 0) {
+            additionalSection.classList.remove('hidden');
+        additionalContainer.innerHTML = '';
+            additionalContainer.appendChild(createSupermemoryKeyframesSection(supermemoryKeyframes));
+          } else {
+            additionalSection.classList.add('hidden');
+          }
+        } else {
+          additionalContainer.innerHTML = '';
+
+          entries.forEach(([key, value]) => {
+          const wrapper = document.createElement('div');
+            wrapper.className = 'flex flex-col gap-2 border border-white/5 rounded-lg p-3';
+
+          const labelP = document.createElement('p');
+          labelP.className = 'text-[#90b2cb] text-sm font-normal';
+          const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+          labelP.textContent = label;
+            wrapper.appendChild(labelP);
+
+            const normalizedKey = label.toLowerCase();
+
+            // Special rich formatting for travel itinerary details which often
+            // arrive as JSON strings in an array. Gemini may name this key
+            // "Itinerary" or "Itinerary Details", so handle both.
+            if (
+              (normalizedKey === 'itinerary details' ||
+                normalizedKey === 'itinerary') &&
+              Array.isArray(value) &&
+              value.length
+            ) {
+              const daysContainer = document.createElement('div');
+              daysContainer.className = 'flex flex-col gap-3';
+
+              value.forEach((entry, idx) => {
+                let day = null;
+                if (typeof entry === 'string') {
+                  try {
+                    day = JSON.parse(entry);
+                  } catch {
+                    // If parsing fails, fall back to plain text later.
+                  }
+                } else if (typeof entry === 'object' && entry !== null) {
+                  day = entry;
+                }
+
+                if (!day) {
+                  const fallback = document.createElement('p');
+                  fallback.className = 'text-white text-sm font-medium whitespace-pre-line';
+                  fallback.textContent = String(entry);
+                  daysContainer.appendChild(fallback);
+                  return;
+                }
+
+                const dayBlock = document.createElement('div');
+                dayBlock.className = 'flex flex-col gap-1 rounded-lg bg-white/5 p-3';
+
+                const dayHeader = document.createElement('p');
+                dayHeader.className = 'text-white text-sm font-semibold';
+                const dayRange =
+                  day.day_range ||
+                  day.day_breakdown ||
+                  `Block ${idx + 1}`;
+                const dest =
+                  day.destination_location ||
+                  day.destination ||
+                  '';
+                dayHeader.textContent = dest ? `${dayRange} • ${dest}` : dayRange;
+                dayBlock.appendChild(dayHeader);
+
+                const activities = Array.isArray(day.activities) ? day.activities : [];
+                activities.forEach((act) => {
+                  const actName = act.name || 'Activity';
+                  const actDesc = act.description || '';
+                  const actLoc = act.location || '';
+                  const mapsRaw = act.google_maps_link || act.maps_link || null;
+                  let mapsUrl = mapsRaw;
+                  // Gemini sometimes returns mobile short-links like
+                  // https://maps.app.goo.gl/..., which can 404 when opened
+                  // from desktop. In that case, fall back to a generic
+                  // Google Maps search using the best location/name we have.
+                  if (mapsUrl && mapsUrl.startsWith('https://maps.app.goo.gl')) {
+                    const query = act.location || act.name || dest || '';
+                    if (query) {
+                      mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        query
+                      )}`;
+                    }
+                  }
+                  const dur =
+                    act.estimated_duration ||
+                    act.duration ||
+                    act.duration_minutes ||
+                    null;
+
+                  const actTitle = document.createElement('p');
+                  actTitle.className = 'text-white text-sm font-medium';
+                  actTitle.textContent = actName;
+                  dayBlock.appendChild(actTitle);
+
+                  if (actDesc) {
+                    const actDescP = document.createElement('p');
+                    actDescP.className = 'text-white/80 text-xs';
+                    actDescP.textContent = actDesc;
+                    dayBlock.appendChild(actDescP);
+                  }
+
+                  if (actLoc || dur || maps) {
+                    const metaP = document.createElement('p');
+                    metaP.className = 'text-[#90b2cb] text-xs';
+                    const parts = [];
+                    if (actLoc) parts.push(actLoc);
+                    if (dur) parts.push(dur);
+                    if (mapsUrl) parts.push('View on map');
+                    metaP.textContent = parts.join(' • ');
+                    dayBlock.appendChild(metaP);
+
+                    // Make the whole meta line clickable to open maps if present.
+                    if (mapsUrl) {
+                      metaP.classList.add('cursor-pointer', 'underline', 'underline-offset-2');
+                      metaP.addEventListener('click', () => {
+                        window.open(mapsUrl, '_blank');
+                      });
+                    }
+                  }
+                });
+
+                daysContainer.appendChild(dayBlock);
+              });
+
+              wrapper.appendChild(daysContainer);
+            } else if (Array.isArray(value)) {
+              // Generic array: show as a small list
+              const list = document.createElement('ul');
+              list.className = 'list-disc pl-5 space-y-1 text-white text-sm';
+
+              value.forEach((item) => {
+                const li = document.createElement('li');
+                if (typeof item === 'string') {
+                  li.textContent = item;
+                } else if (typeof item === 'object' && item !== null) {
+                  const text =
+                    item.description ||
+                    item.instruction ||
+                    item.name ||
+                    item.title ||
+                    JSON.stringify(item);
+                  li.textContent = text;
+          } else {
+                  li.textContent = String(item);
+                }
+                list.appendChild(li);
+              });
+
+              wrapper.appendChild(list);
+            } else {
+              // Scalar values: show full text (no truncation to keep rich context)
+              const valueP = document.createElement('p');
+              valueP.className = 'text-white text-sm font-medium whitespace-pre-line';
+              valueP.innerHTML = linkifyText(String(value));
+              wrapper.appendChild(valueP);
+            }
+
+          additionalContainer.appendChild(wrapper);
+        });
+
+          // Add keyframes section at the end if available
+          if (supermemoryKeyframes.length > 0) {
+            additionalContainer.appendChild(createSupermemoryKeyframesSection(supermemoryKeyframes));
+          }
+        }
+      }
+    }
+
+    // Take Action sheet
+    const actionButton = document.getElementById('gx-take-action');
+    const actionSheet = document.getElementById('gx-action-sheet');
+    const actionList = document.getElementById('gx-action-list');
+    const actionClose = document.getElementById('gx-action-close');
+    const actionSubtitle = document.getElementById('gx-action-subtitle');
+
+    function copyToClipboard(text) {
+      if (!navigator.clipboard) {
+        alert('Clipboard not available in this browser.');
+        return;
+      }
+      navigator.clipboard.writeText(text).then(
+        () => alert('Copied to clipboard'),
+        () => alert('Unable to copy to clipboard')
+      );
+    }
+
+    if (actionButton && actionSheet && actionList && actionClose) {
+      const actions = [];
+      let aiActionAdded = false;
+
+      // Build actions based on category and available data
+      if (category === 'recipe') {
+        const ingredients = (Array.isArray(raw.ingredients) && raw.ingredients.length)
+          ? raw.ingredients
+          : (Array.isArray(raw.items) ? raw.items : []);
+        if (ingredients.length) {
+          actions.push({
+            label: 'Copy shopping list',
+            description: 'Copy all ingredients to your clipboard.',
+            handler: () => {
+              const lines = ingredients.map((ing) => {
+                const name = ing.name || ing.item || 'Item';
+                const qty = ing.quantity || ing.qty || '';
+                return qty ? `${name} – ${qty}` : name;
+              });
+              copyToClipboard(lines.join('\n'));
+            },
+          });
+        }
+
+        if (Array.isArray(raw.instructions) && raw.instructions.length) {
+          actions.push({
+            label: 'Copy cooking steps',
+            description: 'Copy the full set of instructions.',
+            handler: () => {
+              const lines = raw.instructions.map((step, idx) => {
+                if (typeof step === 'string') return `${idx + 1}. ${step}`;
+                const desc = step.description || step.instruction || step.name || '';
+                return `${step.step || idx + 1}. ${desc}`;
+              });
+              copyToClipboard(lines.join('\n'));
+            },
+          });
+        }
+      } else if (category === 'workout') {
+        const workoutExercises = (Array.isArray(raw.exercises) && raw.exercises.length)
+          ? raw.exercises
+          : (Array.isArray(raw.items) ? raw.items : []);
+        const hasStructuredPlan = workoutExercises.length > 0;
+
+        // Only offer the guided workout view if we actually have a workout plan
+        // (at least one exercise) and we know the reel/document id.
+        if (window.__REEL_ID__ && hasStructuredPlan) {
+          actions.push({
+            label: 'Start guided workout',
+            description: 'Use a timer view based on the extracted exercises.',
+            handler: () => {
+              // `__REEL_ID__` is either a local reel_id or a Supermemory
+              // document_id that we've cached in REELS. The workout view
+              // accepts both via its getReelId helper.
+              window.location.href = `/extracted-view?reel_id=${encodeURIComponent(
+                window.__REEL_ID__
+              )}`;
+            },
+          });
+        }
+      } else if (category === 'product') {
+        const products = productsForView;
+        if (products.length) {
+          actions.push({
+            label: 'Copy product list',
+            description: 'Copy all products mentioned in this reel.',
+            handler: () => {
+              const lines = products.map((p, idx) => {
+                const name = p.name || p.title || `Product ${idx + 1}`;
+                const brand = p.brand || p.maker || '';
+                const price = p.price || '';
+                const parts = [brand, price].filter(Boolean).join(' – ');
+                return parts ? `${name} (${parts})` : name;
+              });
+              copyToClipboard(lines.join('\n'));
+            },
+          });
+        }
+
+        // AI enhancement action: let an agent read the structured + raw JSON
+        // for this product reel and propose a richer summary and suggested
+        // next steps. This repopulates the page header and shows an
+        // "AI‑enhanced summary" card above the products list.
+        if (window.__REEL_ID__) {
+          actions.push({
+            label: 'Enhance with AI & take action',
+            description:
+              'Ask Gemini to summarize this sale and suggest the most useful next steps.',
+            handler: async () => {
+              try {
+                const documentId = window.__REEL_ID__;
+                const resp = await fetch(
+                  `/api/agents/plan/${encodeURIComponent(documentId)}`
+                );
+                if (!resp.ok) {
+                  const err = await resp.text();
+                  alert('AI enhancement failed: ' + err.slice(0, 200));
+                  return;
+                }
+                const plan = await resp.json();
+                applyAiPlan(plan);
+              } catch (e) {
+                console.error(e);
+                alert('Error contacting AI enhancement API');
+              }
+            },
+          });
+          aiActionAdded = true;
+        }
+
+        // Google Lens / SerpApi action: only if we know the reel id so the
+        // backend can look up the thumbnail URL.
+        if (window.__REEL_ID__) {
+          actions.push({
+            label: 'Find similar products (Google Lens)',
+            description: 'Use Google Lens via SerpApi to search the web for this product.',
+            handler: async () => {
+              try {
+                const documentId = window.__REEL_ID__;
+                const resp = await fetch(
+                  `/api/products/lens/${encodeURIComponent(documentId)}`
+                );
+                if (!resp.ok) {
+                  const err = await resp.text();
+                  alert('Product search failed: ' + err.slice(0, 160));
+                  return;
+                }
+                const lens = await resp.json();
+                const best =
+                  (lens.product_matches && lens.product_matches[0]) ||
+                  (lens.visual_matches && lens.visual_matches[0]);
+                if (best && best.link) {
+                  window.open(best.link, '_blank');
+                } else {
+                  alert('No suitable product matches found.');
+                }
+              } catch (e) {
+                console.error(e);
+                alert('Error contacting product search API');
+              }
+            },
+          });
+        }
+      } else if (category === 'travel') {
+        const activities = Array.isArray(raw.activities) ? raw.activities : [];
+        if (activities.length) {
+          actions.push({
+            label: 'Copy travel itinerary',
+            description: 'Copy places and activities as a day plan.',
+            handler: () => {
+              const lines = activities.map((a, idx) => {
+                const name = a.name || a.place || a.activity || `Activity ${idx + 1}`;
+                const loc = a.location || a.address || '';
+                const dur = a.estimated_duration || a.duration || '';
+                const parts = [loc, dur].filter(Boolean).join(' – ');
+                return parts ? `${name} (${parts})` : name;
+              });
+              copyToClipboard(lines.join('\n'));
+            },
+          });
+        }
+      }
+
+      // If no category-specific AI action has been added, expose a generic
+      // Agentic Enhance entry in the Take Action sheet that reuses the same
+      // /api/agents/plan endpoint and UI.
+      if (window.__REEL_ID__ && !aiActionAdded && category !== 'workout') {
+        actions.push({
+          label: 'Agentic Enhance this reel',
+          description:
+            'Use AI to clean up the title, summary, and key highlights for this reel.',
+          handler: async () => {
+            try {
+              const documentId = window.__REEL_ID__;
+              const resp = await fetch(
+                `/api/agents/plan/${encodeURIComponent(documentId)}`
+              );
+              if (!resp.ok) {
+                const err = await resp.text();
+                alert('Agentic enhancement failed: ' + err.slice(0, 200));
+                return;
+              }
+              const plan = await resp.json();
+              applyAiPlan(plan);
+            } catch (e) {
+              console.error(e);
+              alert('Error contacting Agentic Enhance API');
+            }
+          },
+        });
+      }
+
+      // Generic actions for any category (skip for workout where we only want
+      // a single, focused "Start guided workout" action).
+      if (category !== 'workout') {
+        actions.push({
+          label: 'Copy quick summary',
+          description: 'Copy the title, category, and short description.',
+          handler: () => {
+            const lines = [
+              extraction.title || 'Untitled',
+              `Category: ${capitalize(extraction.category || 'generic')}`,
+            ];
+            if (extraction.description) lines.push('', extraction.description);
+            copyToClipboard(lines.join('\n'));
+          },
+        });
+
+        if (Object.keys(raw).length) {
+          actions.push({
+            label: 'Copy raw JSON',
+            description: 'Copy the full raw_data payload as JSON.',
+            handler: () => {
+              try {
+                copyToClipboard(JSON.stringify(raw, null, 2));
+              } catch (e) {
+                alert('Unable to serialize raw_data');
+              }
+            },
+          });
+        }
+      }
+
+      if (actions.length) {
+        actionButton.classList.remove('hidden');
+        actionList.innerHTML = '';
+
+        actions.forEach((action) => {
+          const btn = document.createElement('button');
+          btn.className =
+            'flex flex-col items-start gap-1 rounded-xl bg-white/5 hover:bg-white/10 px-3 py-2 text-left';
+
+          const labelEl = document.createElement('p');
+          labelEl.className = 'text-white text-sm font-semibold';
+          labelEl.textContent = action.label;
+
+          const descEl = document.createElement('p');
+          descEl.className = 'text-white/60 text-xs';
+          descEl.textContent = action.description;
+
+          btn.appendChild(labelEl);
+          btn.appendChild(descEl);
+
+          btn.addEventListener('click', () => {
+            actionSheet.classList.add('hidden');
+            action.handler();
+          });
+
+          actionList.appendChild(btn);
+        });
+
+        actionButton.addEventListener('click', () => {
+          if (actionSubtitle) {
+            actionSubtitle.textContent = `Choose what you’d like to do with this ${capitalize(
+              extraction.category || 'reel'
+            )}.`;
+          }
+          actionSheet.classList.remove('hidden');
+        });
+
+        actionClose.addEventListener('click', () => {
+          actionSheet.classList.add('hidden');
+        });
+
+        actionSheet.addEventListener('click', (evt) => {
+          if (evt.target === actionSheet) {
+            actionSheet.classList.add('hidden');
+          }
+        });
+      }
+    }
+
+    // Raw JSON
+    const rawCodeEl = document.getElementById('gx-raw-json');
+    if (rawCodeEl) {
+      try {
+        rawCodeEl.textContent = JSON.stringify(raw, null, 2);
+      } catch (e) {
+        rawCodeEl.textContent = 'Unable to stringify raw_data';
+      }
+    }
+
+    const rawContainer = document.getElementById('gx-raw-container');
+    const toggleRawBtn = document.getElementById('gx-toggle-raw');
+    if (rawContainer && toggleRawBtn) {
+      toggleRawBtn.addEventListener('click', () => {
+        rawContainer.classList.toggle('hidden');
+      });
+    }
+
+    // Fallback note
+    const fallbackEl = document.getElementById('gx-fallback-note');
+    if (fallbackEl) {
+      const orig = raw._original_category || 'Unknown';
+      const reason = raw._fallback_reason || 'Unspecified reason';
+      fallbackEl.textContent = `Auto-formatted generic view. Original type: ${orig}. Reason: ${reason}.`;
+    }
+  }
+
+  // Ensure we first load the reel, then hydrate the UI once data is available.
+  window.addEventListener('DOMContentLoaded', async () => {
+    const backBtn = document.getElementById('gx-back-button');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        // Prefer going back in history; if that fails, go to reel input.
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.href = '/reel-input';
+        }
+      });
+    }
+
+    const skeleton = document.getElementById('gx-loading-skeleton');
+    const mainContent = document.getElementById('gx-main-content');
+    try {
+      await loadReelForGenericView();
+      hydrateGenericExtraction();
+    } finally {
+      if (skeleton) skeleton.classList.add('hidden');
+      if (mainContent) mainContent.classList.remove('hidden');
+    }
+  });
+</script>
+
+</body></html>

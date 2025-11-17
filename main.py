@@ -3,7 +3,7 @@ Main orchestration script for Reel Data Extraction
 """
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Callable
 from src.services.video_downloader import VideoDownloader
 from src.services.video_segmenter import VideoSegmenter
 from src.services.gemini_analyzer import GeminiAnalyzer
@@ -36,7 +36,8 @@ class ReelExtractor:
         preferred_category: Optional[str] = None,
         extract_keyframes: bool = True,
         extract_audio: bool = True,
-        transcribe: bool = True
+        transcribe: bool = True,
+        progress_callback: Optional[Callable[[str, int], None]] = None,
     ) -> dict:
         """
         Extract structured data from a video reel.
@@ -52,26 +53,40 @@ class ReelExtractor:
         Returns:
             Dictionary with extraction results
         """
+        def notify(stage: str, progress: int) -> None:
+            """Notify external callers (e.g., API) about stage/progress."""
+            if progress_callback is None:
+                return
+            try:
+                progress_callback(stage, progress)
+            except Exception:
+                # Never let callback errors break the core pipeline
+                pass
         result = {
             "success": False,
             "extraction": None,
             "stored": False,
             "errors": [],
-            "temp_files": []
+            "temp_files": [],
+            "thumbnail_path": None,
         }
         
         try:
             # Step 1: Download/Process video
+            notify("downloading", 10)
             print("📥 Step 1: Processing video...")
             video_path, error = self.downloader.process(input_source, source_type)
             if error:
                 result["errors"].append(f"Download error: {error}")
+                notify("error", 100)
                 return result
             
             result["temp_files"].append(video_path)
             print(f"✓ Video processed: {video_path}")
+            notify("downloading", 30)
             
             # Step 2: Segment video (keyframes, audio)
+            notify("segmenting", 40)
             print("✂️  Step 2: Segmenting video...")
             segmentation = self.segmenter.segment_video(
                 video_path,
@@ -87,35 +102,46 @@ class ReelExtractor:
             if segmentation["audio_path"]:
                 result["temp_files"].append(segmentation["audio_path"])
             result["temp_files"].extend(segmentation["keyframes"])
+
+            # Keep track of the first keyframe so we can expose a thumbnail
+            # URL for downstream features like Google Lens / product search.
+            if segmentation["keyframes"]:
+                # Store as string path; API layer will convert to a URL.
+                result["thumbnail_path"] = str(segmentation["keyframes"][0])
             
             print(f"✓ Extracted {len(segmentation['keyframes'])} keyframes")
             if segmentation.get("transcript"):
                 print(f"✓ Audio transcribed: {len(segmentation['transcript']['text'])} characters")
             else:
                 print("ℹ️  No audio transcript available (continuing without it)")
+            notify("segmenting", 60)
             
             # Step 3: Analyze with Gemini
+            notify("analyzing", 70)
             print("🤖 Step 3: Analyzing with Gemini AI...")
             transcript_text = None
             if segmentation.get("transcript") and segmentation["transcript"].get("text"):
                 transcript_text = segmentation["transcript"]["text"]
             
-            extraction, error = self.analyzer.analyze_video(
+            extraction, error,keyframes = self.analyzer.analyze_video(
                 video_path,
                 keyframes=segmentation["keyframes"] if extract_keyframes else None,
                 transcript=transcript_text,
                 preferred_category=preferred_category
             )
-            
+            extraction.keyframes = keyframes
             if error:
                 result["errors"].append(f"Analysis error: {error}")
+                notify("error", 100)
                 return result
             
             result["extraction"] = extraction
             print(f"✓ Category detected: {extraction.category}")
             print(f"✓ Title: {extraction.title}")
+            notify("analyzing", 85)
             
             # Step 4: Store in supermemeory.ai
+            notify("storing", 90)
             print("💾 Step 4: Storing in supermemeory.ai...")
             storage_result, storage_error = self.storage.store_extraction(
                 extraction,
@@ -129,10 +155,12 @@ class ReelExtractor:
                 print("✓ Data stored successfully in supermemeory.ai")
             
             result["success"] = True
+            notify("done", 100)
             return result
             
         except Exception as e:
             result["errors"].append(f"Unexpected error: {str(e)}")
+            notify("error", 100)
             return result
         
         finally:

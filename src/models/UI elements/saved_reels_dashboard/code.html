@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Saved Reels Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#0d93f2",
+              "background-light": "#f5f7f8",
+              "background-dark": "#101b22",
+            },
+            fontFamily: {
+              "display": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden">
+<!-- Top App Bar -->
+<div class="sticky top-0 z-10 flex items-center bg-background-light/80 dark:bg-background-dark/80 p-4 pb-2 justify-between backdrop-blur-sm">
+<div class="flex size-12 shrink-0 items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8" data-alt="User profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDN-pxElqENfR54OJLq0JCF7sO-D6CVBLlgHaM-wG9m_Ywbjp6WtDam6AwDuXsZ_llNUrmbj9InwVNHSANViQjwyRN_GAPPSgxyWQx0qEYV68_VjjQLeAXqLkJolJiMIzTQF5kOdIwTZ6ldHTwsi0A3jlSTiMFkyDAn_6yYBPWes4Vdqm94iIdh2Q4aysJpyJgVy2ID-0b3MxwItoXLsB2hYVwWvAot-ELBPXePIpAnqo9CmUGHoTE4kKzs17M2fz-DyfgkQL__Gdj5");'></div>
+</div>
+<h2 class="text-zinc-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1">My Reels</h2>
+<div class="flex w-12 items-center justify-end">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-transparent text-zinc-900 dark:text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
+<span class="material-symbols-outlined text-zinc-900 dark:text-white text-2xl">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Search Bar -->
+<div class="px-4 py-3">
+<label class="flex flex-col min-w-40 h-12 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+<div class="text-zinc-500 dark:text-zinc-400 flex border-none bg-zinc-200 dark:bg-zinc-800 items-center justify-center pl-4 rounded-l-lg border-r-0">
+<span class="material-symbols-outlined text-2xl">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-zinc-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-zinc-200 dark:bg-zinc-800 focus:border-none h-full placeholder:text-zinc-500 dark:placeholder:text-zinc-400 px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal" placeholder="Search by title or keyword..." value=""/>
+</div>
+</label>
+</div>
+<!-- Chips / Filters -->
+<div class="flex gap-3 px-4 py-2 overflow-x-auto">
+<div class="flex h-8 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-primary pl-3 pr-4">
+<span class="material-symbols-outlined text-white text-base">grid_view</span>
+<p class="text-white text-sm font-medium leading-normal">All</p>
+</div>
+<div class="flex h-8 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-zinc-200 dark:bg-zinc-800 pl-3 pr-4">
+<span class="material-symbols-outlined text-zinc-900 dark:text-white text-base">fitness_center</span>
+<p class="text-zinc-900 dark:text-white text-sm font-medium leading-normal">Workouts</p>
+</div>
+<div class="flex h-8 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-zinc-200 dark:bg-zinc-800 pl-3 pr-4">
+<span class="material-symbols-outlined text-zinc-900 dark:text-white text-base">restaurant_menu</span>
+<p class="text-zinc-900 dark:text-white text-sm font-medium leading-normal">Recipes</p>
+</div>
+<div class="flex h-8 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-zinc-200 dark:bg-zinc-800 pl-3 pr-4">
+<span class="material-symbols-outlined text-zinc-900 dark:text-white text-base">flight_takeoff</span>
+<p class="text-zinc-900 dark:text-white text-sm font-medium leading-normal">Travel</p>
+</div>
+<div class="flex h-8 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-zinc-200 dark:bg-zinc-800 pl-3 pr-4">
+<span class="material-symbols-outlined text-zinc-900 dark:text-white text-base">build</span>
+<p class="text-zinc-900 dark:text-white text-sm font-medium leading-normal">DIY</p>
+</div>
+</div>
+<!-- List of Saved Reels -->
+<div class="flex flex-col px-4 pt-4 pb-24 gap-3">
+<!-- List Item 1 -->
+<div class="flex items-center gap-4 bg-zinc-100 dark:bg-zinc-900/50 p-3 min-h-[72px] justify-between rounded-xl">
+<div class="flex items-center gap-4 w-full">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-14 shrink-0" data-alt="HIIT workout video thumbnail" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBM7U-tDzdRPJh8yLEvWwhfrCaAMt9hrtBUqwL-sInvJSayI9xADPfO2L35Qs9oq-8VbPrc6wv6zKedUAK_8f5eBSzO3z-RXJUXQI_jCtZBj5Wgq-fpOHhsWwrCy2KXjQuCDBdkbGNn0wiuyNnP4Lo2BII7WPfW6lg74pxufrv9nOGo0w-QwIA-Ol7qhRhHJT2XmWMxRv0CN5sfI87XOPH77Ek4bVEQuBOKM7vnuPhF-RpezGQMP0C9YNBY3hNd5BzrcjK9acFEyVji");'></div>
+<div class="flex flex-col justify-center overflow-hidden">
+<p class="text-zinc-900 dark:text-white text-base font-medium leading-normal truncate">15-Minute HIIT Workout</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-sm font-normal leading-normal truncate">Category: Workout | Saved: May 20, 2024</p>
+</div>
+</div>
+<div class="shrink-0">
+<div class="text-zinc-500 dark:text-zinc-400 flex size-7 items-center justify-center">
+<span class="material-symbols-outlined text-2xl">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="flex items-center gap-4 bg-zinc-100 dark:bg-zinc-900/50 p-3 min-h-[72px] justify-between rounded-xl">
+<div class="flex items-center gap-4 w-full">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-14 shrink-0" data-alt="Creamy tomato pasta thumbnail" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAgLznLV9Ou4KW_RES9H0-VYEgmBKLt8TJjZLJpIQL4cqoiyqkAhyFaXW1auhS9IbJg8h408u8oGwSlPqUCVvv1qt19I4HUSKaNtMlb_BFtEtJDzDuI90ojFIaApcgq0o718X3z8yDnC36XldZvunjNBoCk24esC8yEOa_hl-2Kyr4IvViP_kPxuIsXdgejAArGeJUZB-1UbF05JrBsM_TxWUE9teq5MuHTvd_PFXs-S-z24yJ60ZgXTKuD6d4OjBthOyvULfmVOoAY");'></div>
+<div class="flex flex-col justify-center overflow-hidden">
+<p class="text-zinc-900 dark:text-white text-base font-medium leading-normal truncate">Creamy Tomato Pasta</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-sm font-normal leading-normal truncate">Category: Recipe | Saved: May 18, 2024</p>
+</div>
+</div>
+<div class="shrink-0">
+<div class="text-zinc-500 dark:text-zinc-400 flex size-7 items-center justify-center">
+<span class="material-symbols-outlined text-2xl">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- List Item 3 -->
+<div class="flex items-center gap-4 bg-zinc-100 dark:bg-zinc-900/50 p-3 min-h-[72px] justify-between rounded-xl">
+<div class="flex items-center gap-4 w-full">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-14 shrink-0" data-alt="Travel vlog thumbnail, person on a mountain" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAu6UaUMT0e91yl3nETsDSItc0lEanlWELITrNxqk9YPD9x1wSwbGN1fVWIHlyGiQwwaeVw_Pyuh6aaWkZcz3ME0UUEcQVWFV-FpSF92G6DLwvootrUl2QiAeHBoIjjwQnC7Yuvd6j8hWf-VlC0Fn7NxhDvP9nGxlyn1wfJ_Z8aR9Wat1pWFw-V2tiVmh7s12x95KJ-EbCDKPmIJ1Ls0m4YEXz-TUEIqrKLB8C8ULkIUhswxG2e9doHsTcqDIXLlY9vEwTEpx8oVYPF");'></div>
+<div class="flex flex-col justify-center overflow-hidden">
+<p class="text-zinc-900 dark:text-white text-base font-medium leading-normal truncate">Ultimate Bali Travel Guide</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-sm font-normal leading-normal truncate">Category: Travel | Saved: May 15, 2024</p>
+</div>
+</div>
+<div class="shrink-0">
+<div class="text-zinc-500 dark:text-zinc-400 flex size-7 items-center justify-center">
+<span class="material-symbols-outlined text-2xl">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- List Item 4 -->
+<div class="flex items-center gap-4 bg-zinc-100 dark:bg-zinc-900/50 p-3 min-h-[72px] justify-between rounded-xl">
+<div class="flex items-center gap-4 w-full">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-14 shrink-0" data-alt="DIY bookshelf thumbnail" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCYJ_rpB87fjCNHLtTdJTlybz5DZHTRWzctIQ3_1MIrrjWd42f3-W4if-4T3YSNiict_0VDkDq92spN3FlOG1YlUJpZROy2pdnQ6EEy4AwCqo2rM2lJu6HCEicA0FehhDBjR3haqLFa2pb7i8AE1qKBQvSRX-F3cwaEaScXqpcXk-334mCoK8Z9VS0LQ3bLPITlTPg-oGOW75x6451YDY4FhE8kU_1Q9JLBoZBthXg3gx81uP16xsd29pXgmbIKJhMnQvt6Os2gNObp");'></div>
+<div class="flex flex-col justify-center overflow-hidden">
+<p class="text-zinc-900 dark:text-white text-base font-medium leading-normal truncate">Building a Floating Bookshelf</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-sm font-normal leading-normal truncate">Category: DIY | Saved: May 12, 2024</p>
+</div>
+</div>
+<div class="shrink-0">
+<div class="text-zinc-500 dark:text-zinc-400 flex size-7 items-center justify-center">
+<span class="material-symbols-outlined text-2xl">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Action Button -->
+<button class="fixed bottom-6 right-6 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary shadow-lg">
+<span class="material-symbols-outlined text-white text-3xl">add</span>
+</button>
+</div>
+</body></html>
