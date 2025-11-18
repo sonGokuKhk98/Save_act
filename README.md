@@ -132,6 +132,12 @@ Act/
     └── processing-status.html
 ```
 
+## Architecture 
+![Image 18-11-25 at 2 55 PM (1)](https://github.com/user-attachments/assets/d852d635-52ab-4eab-9436-a0b25394d116)
+![Image 18-11-25 at 2 55 PM](https://github.com/user-attachments/assets/8e2b8e7e-0a37-42d9-bf86-a7e95aa7e51c)
+![Image 18-11-25 at 2 54 PM](https://github.com/user-attachments/assets/80ebffc9-ff71-4187-b990-b3c530abd4a7)
+
+
 ## Key Technologies
 
 - **AI/ML**: Google Gemini 2.5 Pro/Flash, LangGraph, LangChain
