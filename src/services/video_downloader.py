@@ -52,26 +52,22 @@ class VideoDownloader:
                 'extract_flat': False
             }
             
-            # Try to use cookies from environment variable or file (for Instagram auth)
+            # Try to use cookies from various sources (for Instagram auth)
             import os
-            import tempfile
             
-            instagram_cookies = os.getenv('INSTAGRAM_COOKIES')
-            if instagram_cookies:
-                # Create a temporary cookies file from the environment variable
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-                    f.write(instagram_cookies)
-                    temp_cookies_path = f.name
-                ydl_opts['cookiefile'] = temp_cookies_path
-                print("🍪 Using cookies from INSTAGRAM_COOKIES environment variable")
+            # Priority 1: Render Secret Files (production)
+            render_secret_cookies = Path('/etc/secrets/instagram_cookies.txt')
+            if render_secret_cookies.exists():
+                ydl_opts['cookiefile'] = str(render_secret_cookies)
+                print(f"🍪 Using cookies from Render Secret Files: {render_secret_cookies}")
             else:
-                # Check for cookies file (fallback for local development)
-                cookies_file = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
-                if cookies_file.exists():
-                    ydl_opts['cookiefile'] = str(cookies_file)
-                    print(f"🍪 Using cookies from: {cookies_file}")
+                # Priority 2: Local cookies file (development)
+                local_cookies_file = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
+                if local_cookies_file.exists():
+                    ydl_opts['cookiefile'] = str(local_cookies_file)
+                    print(f"🍪 Using cookies from local file: {local_cookies_file}")
                 else:
-                    # Fall back to browser cookies (works locally on Mac/Linux with Chrome installed)
+                    # Priority 3: Browser cookies (Mac/Linux development)
                     try:
                         ydl_opts['cookiesfrombrowser'] = ('chrome',)
                         print("🍪 Attempting to use Chrome browser cookies")
