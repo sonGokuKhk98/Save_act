@@ -59,26 +59,6 @@ class VideoDownloader:
                 }
             }
             
-            # Optional: Try to use cookies if available (improves Instagram reliability)
-            # This is completely optional - the app works without cookies, but Instagram
-            # may rate-limit anonymous downloads. Cookies are only used if explicitly provided.
-            import os
-            
-            # Check for optional cookie sources (in priority order)
-            render_secret_cookies = Path('/etc/secrets/instagram_cookies.txt')
-            local_cookies_file = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
-            
-            if render_secret_cookies.exists():
-                ydl_opts['cookiefile'] = str(render_secret_cookies)
-                print(f"🍪 Using optional cookies from Render Secret Files")
-            elif local_cookies_file.exists():
-                ydl_opts['cookiefile'] = str(local_cookies_file)
-                print(f"🍪 Using optional cookies from local file")
-            else:
-                # No cookies configured - this is fine, will work for most platforms
-                # Instagram may occasionally rate-limit, but that's expected behavior
-                print("ℹ️  No authentication cookies - using anonymous mode (Instagram may rate-limit)")
-            
             # Download video
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 print(f"📥 Downloading video from: {url}")
