@@ -164,12 +164,31 @@ class ReelExtractor:
             return result
         
         finally:
-            # Cleanup temp files (optional - you might want to keep them for debugging)
-            # Uncomment the following lines to auto-cleanup:
-            # for temp_file in result["temp_files"]:
-            #     if temp_file and Path(temp_file).exists():
-            #         cleanup_temp_file(Path(temp_file))
-            pass
+            # Cleanup temp files after successful storage
+            if result.get("stored"):
+                import shutil
+                print("🧹 Cleaning up temporary files...")
+                
+                # Clean up individual temp files
+                for temp_file in result["temp_files"]:
+                    if temp_file and Path(temp_file).exists():
+                        try:
+                            cleanup_temp_file(Path(temp_file))
+                        except Exception as e:
+                            print(f"⚠️  Could not delete {temp_file}: {e}")
+                
+                # Clean up keyframe directories (e.g., temp_storage/keyframes_<video_id>/)
+                try:
+                    temp_storage = Path(__file__).parent / 'temp_storage'
+                    if temp_storage.exists():
+                        for item in temp_storage.iterdir():
+                            if item.is_dir() and item.name.startswith('keyframes_'):
+                                shutil.rmtree(item)
+                                print(f"✓ Removed directory: {item.name}")
+                except Exception as e:
+                    print(f"⚠️  Could not clean up keyframe directories: {e}")
+                
+                print("✓ Cleanup complete")
 
 
 def main():
