@@ -61,11 +61,18 @@ class VideoDownloader:
             
             # Optional: Use cookies if available (for Instagram reliability with throwaway account)
             # Check Render Secret Files first, then local file
-            cookies_file = Path('/etc/secrets/instagram_cookies.txt')
-            if not cookies_file.exists():
-                cookies_file = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
+            cookies_file = None
+            render_secrets = Path('/etc/secrets/instagram_cookies.txt')
+            local_cookies = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
             
-            if cookies_file.exists():
+            # Try Render Secret Files (production)
+            if render_secrets.exists() and render_secrets.is_file():
+                cookies_file = render_secrets
+            # Try local file (development)
+            elif local_cookies.exists() and local_cookies.is_file():
+                cookies_file = local_cookies
+            
+            if cookies_file:
                 ydl_opts['cookiefile'] = str(cookies_file)
                 print(f"🍪 Using Instagram authentication from: {cookies_file.name}")
             
