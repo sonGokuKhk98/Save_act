@@ -61,13 +61,26 @@ class VideoDownloader:
             
             # Optional: Use cookies if available (for Instagram reliability with throwaway account)
             # Check Render Secret Files first, then local file
-            cookies_file = Path('/etc/secrets/instagram_cookies.txt')
-            if not cookies_file.exists():
-                cookies_file = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
+            cookies_file = None
+            render_secrets = Path('/etc/secrets/instagram_cookies.txt')
+            local_cookies = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
             
-            if cookies_file.exists():
-                ydl_opts['cookiefile'] = str(cookies_file)
+            # Try Render Secret Files (production)
+            if render_secrets.exists() and render_secrets.is_file():
+                # Render Secret Files are read-only, so copy to temp location
+                # yt-dlp tries to update cookies, which fails on read-only mounts
+                import shutil
+                temp_cookies = get_temp_file_path('instagram_cookies.txt')
+                shutil.copy2(render_secrets, temp_cookies)
+                cookies_file = temp_cookies
+                print(f"🍪 Using Instagram authentication from Render Secret Files (copied to temp)")
+            # Try local file (development)
+            elif local_cookies.exists() and local_cookies.is_file():
+                cookies_file = local_cookies
                 print(f"🍪 Using Instagram authentication from: {cookies_file.name}")
+            
+            if cookies_file:
+                ydl_opts['cookiefile'] = str(cookies_file)
             
             # Download video
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:

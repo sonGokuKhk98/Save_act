@@ -1,0 +1,24 @@
+# Deta Space configuration for Actify
+v: 0
+micros:
+  - name: actify-backend
+    src: .
+    engine: python3.9
+    primary: true
+    run: uvicorn api_main:app --host 0.0.0.0 --port 8080
+    dev: uvicorn api_main:app --reload --host 0.0.0.0 --port 8080
+    presets:
+      env:
+        - name: GEMINI_API_KEY
+          description: Google Gemini API key for AI analysis
+          default: ""
+        - name: SUPERMEMORY_API_KEY
+          description: Supermemory API key for storage
+          default: ""
+        - name: SUPERMEMORY_BASE_URL
+          description: Supermemory base URL
+          default: "https://api.supermemory.ai/"
+        - name: SERPAPI_API_KEY
+          description: SerpAPI key for product search (optional)
+          default: ""
+
