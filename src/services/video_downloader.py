@@ -67,14 +67,20 @@ class VideoDownloader:
             
             # Try Render Secret Files (production)
             if render_secrets.exists() and render_secrets.is_file():
-                cookies_file = render_secrets
+                # Render Secret Files are read-only, so copy to temp location
+                # yt-dlp tries to update cookies, which fails on read-only mounts
+                import shutil
+                temp_cookies = get_temp_file_path('instagram_cookies.txt')
+                shutil.copy2(render_secrets, temp_cookies)
+                cookies_file = temp_cookies
+                print(f"🍪 Using Instagram authentication from Render Secret Files (copied to temp)")
             # Try local file (development)
             elif local_cookies.exists() and local_cookies.is_file():
                 cookies_file = local_cookies
+                print(f"🍪 Using Instagram authentication from: {cookies_file.name}")
             
             if cookies_file:
                 ydl_opts['cookiefile'] = str(cookies_file)
-                print(f"🍪 Using Instagram authentication from: {cookies_file.name}")
             
             # Download video
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
