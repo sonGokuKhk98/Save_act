@@ -265,7 +265,10 @@ AI-generated view based on this keyframe. For products, you can also use Google 
     if (documentId) {
       try {
         const resp = await fetch(`/api/reels/document/${encodeURIComponent(documentId)}`);
-        if (!resp.ok) throw new Error('Failed to fetch document');
+        if (!resp.ok) {
+          const errorText = await resp.text();
+          throw new Error(`Failed to fetch document (${resp.status}): ${errorText}`);
+        }
         const data = await resp.json();
         
         // Parse the Supermemory document structure
@@ -308,12 +311,26 @@ AI-generated view based on this keyframe. For products, you can also use Google 
         return;
       } catch (e) {
         console.error('Error loading document from Supermemory:', e);
+        // Show error in UI
+        const titleEl = document.getElementById('gx-title');
+        if (titleEl) {
+          titleEl.textContent = 'Error loading reel';
+          titleEl.classList.remove('animate-pulse', 'bg-white/10', 'text-transparent');
+          titleEl.classList.add('text-red-400');
+        }
+        const summaryEl = document.getElementById('gx-summary');
+        if (summaryEl) {
+          summaryEl.textContent = 'This reel could not be found. It may have been deleted or the link is incorrect.';
+          summaryEl.classList.remove('hidden');
+        }
+        throw e; // Re-throw to stop further processing
       }
     }
     
     
     if (!documentId) {
       console.warn('No document_id in query string; ensure window.__EXTRACTION__ is set manually.');
+      throw new Error('No document_id provided');
     }
   }
 
@@ -2198,6 +2215,9 @@ AI-generated view based on this keyframe. For products, you can also use Google 
     try {
       await loadReelForGenericView();
       hydrateGenericExtraction();
+    } catch (error) {
+      console.error('Failed to load reel:', error);
+      // Error UI is already shown by loadReelForGenericView
     } finally {
       if (skeleton) skeleton.classList.add('hidden');
       if (mainContent) mainContent.classList.remove('hidden');
