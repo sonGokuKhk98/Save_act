@@ -1,6 +1,8 @@
 # Environment variables
 .env
 
+# Instagram cookies (contains sensitive session data)
+instagram_cookies.txt
 
 # Python
 __pycache__/

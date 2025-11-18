@@ -52,6 +52,32 @@ class VideoDownloader:
                 'extract_flat': False
             }
             
+            # Try to use cookies from environment variable or file (for Instagram auth)
+            import os
+            import tempfile
+            
+            instagram_cookies = os.getenv('INSTAGRAM_COOKIES')
+            if instagram_cookies:
+                # Create a temporary cookies file from the environment variable
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+                    f.write(instagram_cookies)
+                    temp_cookies_path = f.name
+                ydl_opts['cookiefile'] = temp_cookies_path
+                print("🍪 Using cookies from INSTAGRAM_COOKIES environment variable")
+            else:
+                # Check for cookies file (fallback for local development)
+                cookies_file = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
+                if cookies_file.exists():
+                    ydl_opts['cookiefile'] = str(cookies_file)
+                    print(f"🍪 Using cookies from: {cookies_file}")
+                else:
+                    # Fall back to browser cookies (works locally on Mac/Linux with Chrome installed)
+                    try:
+                        ydl_opts['cookiesfrombrowser'] = ('chrome',)
+                        print("🍪 Attempting to use Chrome browser cookies")
+                    except Exception:
+                        print("⚠️  No cookies available - Instagram downloads may be rate-limited")
+            
             # Download video
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 print(f"📥 Downloading video from: {url}")
