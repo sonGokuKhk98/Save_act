@@ -59,6 +59,16 @@ class VideoDownloader:
                 }
             }
             
+            # Optional: Use cookies if available (for Instagram reliability with throwaway account)
+            # Check Render Secret Files first, then local file
+            cookies_file = Path('/etc/secrets/instagram_cookies.txt')
+            if not cookies_file.exists():
+                cookies_file = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
+            
+            if cookies_file.exists():
+                ydl_opts['cookiefile'] = str(cookies_file)
+                print(f"🍪 Using Instagram authentication from: {cookies_file.name}")
+            
             # Download video
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 print(f"📥 Downloading video from: {url}")
