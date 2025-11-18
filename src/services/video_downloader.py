@@ -49,30 +49,44 @@ class VideoDownloader:
                 'outtmpl': str(temp_path.with_suffix('')),  # Output filename (without extension)
                 'quiet': False,  # Show progress
                 'no_warnings': False,
-                'extract_flat': False
+                'extract_flat': False,
+                # Add headers to appear more like a real browser
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-us,en;q=0.5',
+                    'Sec-Fetch-Mode': 'navigate',
+                }
             }
             
-            # Try to use cookies from various sources (for Instagram auth)
+            # Try to use cookies from various sources (Instagram now requires auth)
             import os
+            cookies_configured = False
             
             # Priority 1: Render Secret Files (production)
             render_secret_cookies = Path('/etc/secrets/instagram_cookies.txt')
             if render_secret_cookies.exists():
                 ydl_opts['cookiefile'] = str(render_secret_cookies)
                 print(f"🍪 Using cookies from Render Secret Files: {render_secret_cookies}")
+                cookies_configured = True
             else:
                 # Priority 2: Local cookies file (development)
                 local_cookies_file = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
                 if local_cookies_file.exists():
                     ydl_opts['cookiefile'] = str(local_cookies_file)
                     print(f"🍪 Using cookies from local file: {local_cookies_file}")
+                    cookies_configured = True
                 else:
                     # Priority 3: Browser cookies (Mac/Linux development)
                     try:
                         ydl_opts['cookiesfrombrowser'] = ('chrome',)
                         print("🍪 Attempting to use Chrome browser cookies")
+                        cookies_configured = True
                     except Exception:
-                        print("⚠️  No cookies available - Instagram downloads may be rate-limited")
+                        print("⚠️  No cookies available - Instagram downloads will likely fail")
+            
+            if not cookies_configured and 'instagram.com' in url.lower():
+                print("💡 TIP: Instagram requires authentication. See README for cookie setup instructions.")
             
             # Download video
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
