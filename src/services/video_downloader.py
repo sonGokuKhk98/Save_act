@@ -26,12 +26,9 @@ class VideoDownloader:
     
     def download_from_url(self, url: str) -> Tuple[Optional[Path], Optional[str]]:
         """
-        Download video from URL (TikTok, YouTube Shorts, Twitter, etc.).
+        Download video from URL (Instagram, TikTok, YouTube Shorts, etc.).
         
         Uses yt-dlp to download videos from various platforms.
-        
-        Note: Instagram is NOT supported due to authentication requirements.
-        Use TikTok, YouTube Shorts, Twitter, or other platforms instead.
         
         Args:
             url: URL of the video to download
@@ -39,14 +36,6 @@ class VideoDownloader:
         Returns:
             Tuple of (file_path, error_message)
         """
-        
-        # Block Instagram for security reasons (requires login cookies)
-        if 'instagram.com' in url.lower():
-            return None, (
-                "Instagram is not supported due to authentication requirements. "
-                "Please use TikTok, YouTube Shorts, Twitter, or other platforms instead. "
-                "These platforms work without requiring login credentials."
-            )
         try:
             import yt_dlp
             
@@ -61,7 +50,7 @@ class VideoDownloader:
                 'quiet': False,  # Show progress
                 'no_warnings': False,
                 'extract_flat': False,
-                # Add headers to appear more like a real browser
+                # Add headers to appear more like a real browser (helps with rate limits)
                 'http_headers': {
                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -70,7 +59,25 @@ class VideoDownloader:
                 }
             }
             
-            # No cookies needed - we only support platforms that work without authentication
+            # Optional: Try to use cookies if available (improves Instagram reliability)
+            # This is completely optional - the app works without cookies, but Instagram
+            # may rate-limit anonymous downloads. Cookies are only used if explicitly provided.
+            import os
+            
+            # Check for optional cookie sources (in priority order)
+            render_secret_cookies = Path('/etc/secrets/instagram_cookies.txt')
+            local_cookies_file = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
+            
+            if render_secret_cookies.exists():
+                ydl_opts['cookiefile'] = str(render_secret_cookies)
+                print(f"🍪 Using optional cookies from Render Secret Files")
+            elif local_cookies_file.exists():
+                ydl_opts['cookiefile'] = str(local_cookies_file)
+                print(f"🍪 Using optional cookies from local file")
+            else:
+                # No cookies configured - this is fine, will work for most platforms
+                # Instagram may occasionally rate-limit, but that's expected behavior
+                print("ℹ️  No authentication cookies - using anonymous mode (Instagram may rate-limit)")
             
             # Download video
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
