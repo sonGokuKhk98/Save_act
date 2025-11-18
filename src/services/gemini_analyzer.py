@@ -688,8 +688,9 @@ class GeminiAnalyzer:
                         "description": formatted_data.get("description") or mapped_data.get("description"),
                         "source_url": mapped_data.get("source_url"),
                         "confidence_score": mapped_data.get("confidence_score", 0.5),  # Lower confidence for fallback
-                        "raw_data": formatted_data # Store ALL formatted data including additional_context
+                        "raw_data": formatted_data  # Store ALL formatted data including additional_context
                     }
+                    
                     generic_instance = GenericExtraction(**generic_data)
                     print(f"✓ Successfully created GenericExtraction fallback with formatted data")
                     print(f"   Preserved {len(formatted_data)} fields in raw_data")
@@ -720,13 +721,13 @@ class GeminiAnalyzer:
             preferred_category: Preferred category (if known)
         
         Returns:
-            Tuple of (extracted model instance, error_message)
+            Tuple of (extracted model instance, error_message, keyframes)
         """
         # Detect category if not provided
         if not preferred_category:
             category, error = self.detect_category(video_path, keyframes, transcript)
             if error:
-                return None, error
+                return None, error, keyframes
             preferred_category = category
         
         # Extract based on category
@@ -740,8 +741,9 @@ class GeminiAnalyzer:
         }
         
         if preferred_category not in category_extractors:
-            return None, f"Unknown category: {preferred_category}"
-
+            return None, f"Unknown category: {preferred_category}", keyframes
+        
         extractor = category_extractors[preferred_category]
         extraction_result, error = extractor(video_path, keyframes, transcript)
         return extraction_result, error, keyframes
+
