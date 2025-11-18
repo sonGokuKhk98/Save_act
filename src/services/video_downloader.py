@@ -26,9 +26,11 @@ class VideoDownloader:
     
     def download_from_url(self, url: str) -> Tuple[Optional[Path], Optional[str]]:
         """
-        Download video from URL (Instagram, TikTok, YouTube Shorts, etc.).
+        Download video from URL (TikTok, YouTube Shorts, Twitter, etc.).
         
         Uses yt-dlp to download videos from various platforms.
+        
+        Note: Instagram is currently not supported due to authentication requirements.
         
         Args:
             url: URL of the video to download
@@ -36,6 +38,17 @@ class VideoDownloader:
         Returns:
             Tuple of (file_path, error_message)
         """
+        # Check if URL is Instagram - currently not supported
+        if 'instagram.com' in url.lower():
+            return None, (
+                "Instagram downloads are currently disabled for security reasons. "
+                "Please try:\n"
+                "• YouTube Shorts (youtube.com/shorts/...)\n"
+                "• TikTok (tiktok.com/@.../video/...)\n"
+                "• Twitter/X videos (twitter.com/.../status/...)\n"
+                "• Reddit videos (reddit.com/r/.../comments/...)"
+            )
+        
         try:
             import yt_dlp
             
@@ -58,35 +71,6 @@ class VideoDownloader:
                     'Sec-Fetch-Mode': 'navigate',
                 }
             }
-            
-            # Try to use cookies from various sources (Instagram now requires auth)
-            import os
-            cookies_configured = False
-            
-            # Priority 1: Render Secret Files (production)
-            render_secret_cookies = Path('/etc/secrets/instagram_cookies.txt')
-            if render_secret_cookies.exists():
-                ydl_opts['cookiefile'] = str(render_secret_cookies)
-                print(f"🍪 Using cookies from Render Secret Files: {render_secret_cookies}")
-                cookies_configured = True
-            else:
-                # Priority 2: Local cookies file (development)
-                local_cookies_file = Path(__file__).parent.parent.parent / 'instagram_cookies.txt'
-                if local_cookies_file.exists():
-                    ydl_opts['cookiefile'] = str(local_cookies_file)
-                    print(f"🍪 Using cookies from local file: {local_cookies_file}")
-                    cookies_configured = True
-                else:
-                    # Priority 3: Browser cookies (Mac/Linux development)
-                    try:
-                        ydl_opts['cookiesfrombrowser'] = ('chrome',)
-                        print("🍪 Attempting to use Chrome browser cookies")
-                        cookies_configured = True
-                    except Exception:
-                        print("⚠️  No cookies available - Instagram downloads will likely fail")
-            
-            if not cookies_configured and 'instagram.com' in url.lower():
-                print("💡 TIP: Instagram requires authentication. See README for cookie setup instructions.")
             
             # Download video
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
