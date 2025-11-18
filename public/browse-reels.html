@@ -40,7 +40,7 @@
     </style>
   </head>
   <body class="bg-background-light dark:bg-background-dark font-display">
-    <div class="relative flex h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-y-auto">
+    <div class="w-full max-w-[480px] mx-auto min-h-screen flex flex-col bg-background-light dark:bg-background-dark">
       <!-- Top App Bar -->
       <header class="flex items-center p-4 pb-2 justify-between sticky top-0 z-10 bg-background-light dark:bg-background-dark border-b border-zinc-800/60">
         <button
@@ -71,7 +71,7 @@
         </div>
       </header>
 
-      <main class="flex-1 px-4 py-3 max-w-[480px] mx-auto w-full">
+      <main class="flex-1 px-4 py-3">
         <!-- Loading state -->
         <div id="browse-loading" class="flex items-center justify-center py-12">
           <div class="flex flex-col items-center gap-3">
