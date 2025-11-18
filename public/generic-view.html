@@ -69,7 +69,7 @@
   </style>
   </head>
 <body class="font-display bg-background-light dark:bg-background-dark text-white/90">
-<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark">
+<div class="w-full max-w-[480px] mx-auto">
 <div class="flex flex-col gap-2 bg-[#101b22] px-4 pt-4 pb-2 sticky top-0 z-10 border-b border-white/10">
 <div class="flex items-center h-12 justify-between">
 <button
@@ -128,7 +128,7 @@
 </div>
 </div>
 
-<div id="gx-loading-skeleton" class="flex flex-col space-y-4 p-4 max-w-[480px] mx-auto w-full">
+<div id="gx-loading-skeleton" class="flex flex-col space-y-4 p-4">
   <div class="h-5 w-32 rounded-full bg-white/10 animate-pulse"></div>
   <div class="h-4 w-64 rounded-full bg-white/5 animate-pulse"></div>
   <div class="grid grid-cols-2 gap-4 pt-4">
@@ -137,7 +137,7 @@
   </div>
 </div>
 
-<div id="gx-main-content" class="flex flex-col space-y-8 p-4 max-w-[480px] mx-auto w-full hidden">
+<div id="gx-main-content" class="flex flex-col space-y-8 p-4 hidden">
 <p id="gx-summary" class="text-white/70 text-base font-normal leading-normal pb-3">
   AI-generated generic view. Some fields could not be fully structured.
 </p>
@@ -230,7 +230,7 @@ AI-generated view based on this keyframe. For products, you can also use Google 
 </div>
 </div>
 </div>
-<div class="px-4 pt-4 pb-8 mt-auto max-w-[480px] mx-auto w-full">
+<div class="px-4 pt-4 pb-8 mt-auto">
 <div class="flex items-start gap-2 text-center w-full justify-center">
 <span class="material-symbols-outlined text-base text-white/50 mt-0.5">info</span>
 <p id="gx-fallback-note" class="text-white/50 text-sm font-normal leading-normal max-w-xs">Auto-formatted generic view. Original type: recipe_v2. Reason: Key fields missing.</p>
